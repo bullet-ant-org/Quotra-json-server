@@ -1,0 +1,307 @@
+{
+  "users": [
+    {
+      "id": "user1",
+      "username": "AdminUser",
+      "email": "admin@example.com",
+      "profilePictureUrl": "https://example.com/images/avatar_admin.png",
+      "role": "admin",
+      "password": "admin",
+      "balance": 10000,
+      "totalIncome": 550.75,
+      "activePlanId": "pro",
+      "currentPlanName": "Pro Plan",
+      "tradeDuration": 14,
+      "tradeTimeElapsed": 0,
+      "tradeTimeRemaining": "14 Days",
+      "currentInvestmentAmount": 200,
+      "profitPotentialDisplay": "Est. $50 - $150 profit",
+      "totalBalance": null
+    },
+    {
+      "id": "user2",
+      "username": "Alice",
+      "email": "alice@example.com",
+      "profilePictureUrl": "https://example.com/images/avatar_alice.png",
+      "role": "user",
+      "balance": 1500.5,
+      "totalIncome": 120.25
+    },
+    {
+      "id": "user4",
+      "username": "Charlie",
+      "email": "charlie@example.com",
+      "profilePictureUrl": "https://example.com/images/avatar_charlie.png",
+      "role": "editor",
+      "balance": 500,
+      "totalIncome": 0
+    },
+    {
+      "id": "2167",
+      "username": "pablo",
+      "email": "monthol@gmail.com",
+      "password": "0000",
+      "profileImageUrl": "https://example.com/uploads/2167_[CITYPNG.COM]Google Logo With Black Shadow - 1500x1500.png",
+      "investmentStatus": "completed",
+      "pendingPlanId": null,
+      "pendingPlanName": null,
+      "pendingInvestmentAmount": null,
+      "currentPlanId": "1529",
+      "currentPlanName": "Undead1",
+      "currentInvestmentAmount": 56,
+      "lastInvestmentDate": "2025-05-12T09:54:37.622Z",
+      "totalBalance": 56,
+      "tradeStartTime": "2025-05-12T09:54:37.622Z",
+      "tradeDurationDays": null,
+      "profitPotential": 400,
+      "accruedProfit": 0
+    },
+    {
+      "id": "8ef4",
+      "username": "keagan",
+      "email": "keagan@gmail.com",
+      "password": "12345678",
+      "profileImageUrl": ""
+    }
+  ],
+  "assets": [
+    {
+      "id": "basic",
+      "name": "Basic Plan",
+      "priceRange": "50-150",
+      "originalPrice": null,
+      "period": "per cycle",
+      "tradeTime": "7 Days",
+      "profitPotential": "Est. $10 - $30 profit",
+      "isPopular": false,
+      "features": [
+        {
+          "text": "Basic market access",
+          "included": true,
+          "detail": "Access to core trading features."
+        },
+        {
+          "text": "Standard support",
+          "included": true,
+          "detail": ""
+        },
+        {
+          "text": "Limited analytics",
+          "included": false,
+          "detail": ""
+        }
+      ],
+      "buttonText": "Invest Now",
+      "buttonLink": "/dashboard/invest/basic",
+      "isDiscounted": false
+    },
+    {
+      "id": "pro",
+      "name": "Pro Plan",
+      "priceRange": "200-500",
+      "originalPrice": null,
+      "period": "per cycle",
+      "tradeTime": "14 Days",
+      "profitPotential": "Est. $50 - $150 profit",
+      "isPopular": true,
+      "features": [
+        {
+          "text": "Everything in Basic...",
+          "included": true,
+          "detail": ""
+        },
+        {
+          "text": "Advanced analytics",
+          "included": true,
+          "detail": ""
+        },
+        {
+          "text": "Priority support",
+          "included": true,
+          "detail": ""
+        }
+      ],
+      "buttonText": "Go Pro",
+      "buttonLink": "/dashboard/invest/pro",
+      "isDiscounted": false
+    },
+    {
+      "id": "premium",
+      "name": "Premium Plan",
+      "priceRange": "550-1000",
+      "originalPrice": null,
+      "period": "per cycle",
+      "tradeTime": "30 Days",
+      "profitPotential": "Est. $120 - $300 profit",
+      "isPopular": false,
+      "features": [
+        {
+          "text": "Everything in Pro...",
+          "included": true,
+          "detail": ""
+        },
+        {
+          "text": "Dedicated account manager",
+          "included": true,
+          "detail": ""
+        },
+        {
+          "text": "Exclusive market insights",
+          "included": true,
+          "detail": ""
+        }
+      ],
+      "buttonText": "Go Premium",
+      "buttonLink": "/dashboard/invest/premium",
+      "isDiscounted": false
+    },
+    {
+      "id": "enterprise",
+      "name": "Enterprise Solution",
+      "priceRange": "1000+",
+      "originalPrice": null,
+      "period": "custom",
+      "tradeTime": "Custom",
+      "profitPotential": "Custom / Scalable",
+      "isPopular": false,
+      "features": [
+        {
+          "text": "All Premium features...",
+          "included": true,
+          "detail": ""
+        },
+        {
+          "text": "API Access",
+          "included": true,
+          "detail": ""
+        },
+        {
+          "text": "Bespoke integrations",
+          "included": true,
+          "detail": ""
+        }
+      ],
+      "buttonText": "Contact Sales",
+      "buttonLink": "/contact/sales",
+      "isDiscounted": false
+    },
+    {
+      "id": "1529",
+      "name": "Undead1",
+      "priceRange": "150",
+      "features": [
+        {
+          "text": "feaesdg",
+          "included": true
+        }
+      ],
+      "profitPotential": 400,
+      "buttonText": "Choose Plan"
+    }
+  ],
+  "assetOrders": [
+    {
+      "orderId": "ord_abc1",
+      "userId": "user2",
+      "assetId": "asset101",
+      "orderDate": "2023-10-26T10:00:00Z",
+      "status": "approved",
+      "priceAtOrder": 5000,
+      "invitedByUserId": null,
+      "editorDiscountApplied": false,
+      "id": "5dda"
+    },
+    {
+      "orderId": "ord_abc2",
+      "userId": null,
+      "assetId": "asset102",
+      "orderDate": "2023-10-27T11:30:00Z",
+      "status": "approved",
+      "priceAtOrder": 2500,
+      "invitedByUserId": null,
+      "editorDiscountApplied": false,
+      "id": "6d89"
+    },
+    {
+      "orderId": "ord_abc3",
+      "userId": "user4",
+      "assetId": "asset103",
+      "orderDate": "2023-10-28T09:15:00Z",
+      "status": "pending",
+      "priceAtOrder": 1200,
+      "invitedByUserId": null,
+      "editorDiscountApplied": false,
+      "id": "8a5b"
+    },
+    {
+      "orderId": "ord_abc4",
+      "userId": "user2",
+      "assetId": "asset102",
+      "orderDate": "2023-10-28T14:00:00Z",
+      "status": "pending",
+      "priceAtOrder": 1250,
+      "invitedByUserId": "user4",
+      "editorDiscountApplied": true,
+      "id": "039e"
+    }
+  ],
+  "loanTypes": [
+    {
+      "id": "auto",
+      "name": "Auto Loan",
+      "interestRate": "Rates as low as 4.5% APR",
+      "term": "24-72 months",
+      "amountRange": "$5,000 - $75,000",
+      "descriptionPoints": [
+        {
+          "text": "For new or used vehicles",
+          "included": true
+        },
+        {
+          "text": "Quick approval process",
+          "included": true
+        },
+        {
+          "text": "Refinancing options available",
+          "included": true
+        }
+      ],
+      "buttonText": "Get Pre-Approved",
+      "buttonLink": "/apply/auto"
+    },
+    {
+      "id": "mortgage",
+      "name": "Mortgage Loan",
+      "interestRate": "Competitive fixed & variable rates",
+      "term": "15 or 30 years",
+      "amountRange": "Varies based on qualification",
+      "descriptionPoints": [
+        {
+          "text": "Home purchase or refinance",
+          "included": true
+        },
+        {
+          "text": "Expert guidance available",
+          "included": true
+        },
+        {
+          "text": "Various loan programs (FHA, VA, Conventional)",
+          "included": true
+        }
+      ],
+      "buttonText": "Learn More",
+      "buttonLink": "/learn/mortgage"
+    }
+  ],
+  "adminDashboardSummary": {
+    "totalUsers": 4,
+    "pendingOrders": 2,
+    "totalAssetValueOrderedAllTime": 9950
+  },
+  "adminSettings": [
+    {
+      "id": "globalAdminSettings",
+      "checkoutWalletAddress": "sdfghjkldrxdvjnhcdsd"
+    }
+  ]
+}
