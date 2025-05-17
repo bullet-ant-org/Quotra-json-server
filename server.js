@@ -15,7 +15,10 @@ const endpoints = Object.keys(db).flatMap(resource => [
 
 // CORS configuration
 const corsOptions = {
-  origin: 'https://quotra-investments.vercel.app', // Allow requests from your frontend
+  origin: [
+    'https://quotra-investments.vercel.app', // Your production frontend
+    'http://localhost:5173'                 // Your local development frontend
+  ],
   optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 }
 
