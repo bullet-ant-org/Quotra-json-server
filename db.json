@@ -303,5 +303,33 @@
       "id": "globalAdminSettings",
       "checkoutWalletAddress": "sdfghjkldrxdvjnhcdsd"
     }
+  ],
+  "withdrawals": [
+    {
+      "id": "wd_001",
+      "userId": "user1",
+      "amount": 250.00,
+      "status": "pending",
+      "withdrawalWalletAddress": "0xAbCdEfGhIjKlMnOpQrStUvWxYz1234567890aBcDeF",
+      "requestDate": "2024-03-15T10:30:00Z"
+    },
+    {
+      "id": "wd_002",
+      "userId": "user2",
+      "amount": 120.50,
+      "status": "approved",
+      "withdrawalWalletAddress": "0x1234567890aBcDeFAbCdEfGhIjKlMnOpQrStUvWxYz",
+      "requestDate": "2024-03-14T14:20:15Z",
+      "processedDate": "2024-03-14T18:05:00Z"
+    },
+    {
+      "id": "wd_003",
+      "userId": "2167",
+      "amount": 50.00,
+      "status": "rejected",
+      "withdrawalWalletAddress": "0xFeDcBa0987654321zYxWvUtSrQpOnMlKjIhGfEdCbA",
+      "requestDate": "2024-03-16T09:00:00Z",
+      "rejectionReason": "Insufficient verifiable activity."
+    }
   ]
 }
