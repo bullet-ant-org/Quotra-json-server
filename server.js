@@ -93,12 +93,12 @@ server.use(middlewares);
 
 // Serve index.html for the root path
 server.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Serve style.css
 server.get('/style.css', (req, res) => {
-  res.sendFile(path.join(__dirname, 'style.css'));
+  res.sendFile(path.join(__dirname, 'public', 'style.css'));
 });
 
 // Custom /ping route for health checks and keep-alive
