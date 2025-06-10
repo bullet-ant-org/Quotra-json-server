@@ -2,11 +2,11 @@
   "users": [
     {
       "id": "user1",
-      "username": "AdminUser",
-      "email": "admin@example.com",
+      "username": "moroccoadmin",
+      "email": "moroccoadmin@gmail.com",
       "profilePictureUrl": "https://example.com/images/avatar_admin.png",
       "role": "admin",
-      "password": "admin"
+      "password": "morocco"
     }
   ],
   "assets": [],

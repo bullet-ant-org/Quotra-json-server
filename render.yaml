@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: quotra-json-server # You can change this name
+    env: node
+    plan: free # Important: Free plans will sleep if inactive
+    region: oregon # Optional: specify a region, e.g., oregon, frankfurt
+    buildCommand: "npm install"
+    startCommand: "node server.js"
+    healthCheckPath: /ping # We'll add this endpoint in server.js
+    autoDeploy: yes # Enable auto-deploy in Render dashboard by linking your Git repo
+    envVars:
+      - key: NODE_VERSION
+        value: 18 # Or your preferred Node.js LTS version
+      - key: PORT # Render sets this, but good to be aware
+        value: 3000 # Default port, json-server will use process.env.PORT
+      # Add any other environment variables your application needs
+      # Example:
+      # - key: MY_API_KEY
+      #   value: your_api_key_here
+
+databases: # If you decide to use Render's managed PostgreSQL later
+  # - name: mydatabase
+  #   plan: free # Render offers free PostgreSQL instances
+  #   # databaseName: quotra_db # Optional: specify database name
+  #   # user: quotra_user # Optional: specify user
