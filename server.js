@@ -2,7 +2,7 @@ const jsonServer = require('json-server');
 const server = jsonServer.create();
 const router = jsonServer.router('db.json'); // Path to your db.json file
 const middlewares = jsonServer.defaults();
-const fs = require('fs');
+const fs = require('fs'); // fs is used for backups, not directly for serving index.html here
 const path = require('path');
 const http = require('http');
 const cron = require('node-cron');
@@ -90,6 +90,16 @@ function scheduleDailyBackup() {
 
 // --- Server Setup ---
 server.use(middlewares);
+
+// Serve index.html for the root path
+server.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Serve style.css
+server.get('/style.css', (req, res) => {
+  res.sendFile(path.join(__dirname, 'style.css'));
+});
 
 // Custom /ping route for health checks and keep-alive
 server.get('/ping', (req, res) => {
