@@ -243,6 +243,51 @@ a:hover {
     margin-right: auto;
 }
 
+/* --- API Endpoints Section --- */
+.api-endpoints {
+    padding: 60px 0;
+    background-color: var(--text-light); /* Slightly different background to stand out */
+    border-radius: var(--border-radius);
+    margin-top: 40px;
+    margin-bottom: 40px;
+    box-shadow: var(--box-shadow);
+}
+
+.api-endpoints h2 {
+    text-align: center;
+    font-size: 2.2rem;
+    margin-bottom: 1.5rem;
+}
+
+.api-endpoints p {
+    text-align: center;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 2rem;
+    color: #555;
+}
+
+.routes-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.routes-list li {
+    background-color: var(--bg-light);
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.routes-list li a {
+    font-weight: 600;
+    font-family: var(--font-heading);
+}
+
+
+
 /* --- Footer --- */
 .main-footer {
     background-color: var(--text-dark);

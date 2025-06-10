@@ -101,6 +101,12 @@ server.get('/style.css', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'style.css'));
 });
 
+// API endpoint to get available routes from json-server
+server.get('/api/routes', (req, res) => {
+  const routes = Object.keys(router.db.getState());
+  res.json(routes);
+});
+
 // Custom /ping route for health checks and keep-alive
 server.get('/ping', (req, res) => {
   res.status(200).send('pong');

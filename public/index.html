@@ -70,6 +70,14 @@
             </div>
         </section>
 
+        <section class="api-endpoints container">
+            <h2>Available API Endpoints</h2>
+            <p>Explore the resources available through our JSON API. Each endpoint corresponds to a dataset you can interact with.</p>
+            <div id="api-routes-list" class="routes-container">
+                <p class="loading-routes">Loading available endpoints...</p>
+            </div>
+        </section>
+
         <section class="cta">
             <div class="container">
                 <h2>Ready to Elevate Your Backend?</h2>
@@ -87,5 +95,38 @@
             </p>
         </div>
     </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const routesListContainer = document.getElementById('api-routes-list');
+
+            fetch('/api/routes')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(routes => {
+                    routesListContainer.innerHTML = ''; // Clear loading message
+                    if (routes && routes.length > 0) {
+                        const ul = document.createElement('ul');
+                        ul.className = 'routes-list';
+                        routes.forEach(route => {
+                            const li = document.createElement('li');
+                            li.innerHTML = `<a href="/${route}" target="_blank">/${route}</a>`;
+                            ul.appendChild(li);
+                        });
+                        routesListContainer.appendChild(ul);
+                    } else {
+                        routesListContainer.innerHTML = '<p>No API endpoints found or unable to load.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching API routes:', error);
+                    routesListContainer.innerHTML = '<p>Error loading API endpoints. Please check the console.</p>';
+                });
+        });
+    </script>
 </body>
 </html>
