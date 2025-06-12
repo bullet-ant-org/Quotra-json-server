@@ -16,9 +16,7 @@ admin.initializeApp({
 const db = admin.database();
 const server = express();
 server.use(express.json());
-server.use(cors({
-  origin: 'https://quotra-investments.vercel.app',
-}));
+server.use(cors());
 
 const port = process.env.PORT || 3000;
 const BACKUP_DIR = path.join(__dirname, 'backups');
@@ -122,22 +120,37 @@ endpoints.forEach(key => {
   // POST (add) to array collections only (skip for objects like adminDashboardSummary)
   if (key !== 'adminDashboardSummary') {
     server.post(`/${key}`, async (req, res) => {
-      const ref = db.ref(key).push();
-      await ref.set(req.body);
-      res.status(201).json({ id: ref.key, ...req.body });
+      try {
+        const ref = db.ref(key).push();
+        await ref.set(req.body);
+        res.status(201).json({ id: ref.key, ...req.body });
+      } catch (err) {
+        console.error(`Error posting to ${key}:`, err);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     });
   }
 
   // PUT (replace) for objects or update for arrays
   server.put(`/${key}/:id`, async (req, res) => {
-    await db.ref(`${key}/${req.params.id}`).set(req.body);
-    res.json({ id: req.params.id, ...req.body });
+    try {
+      await db.ref(`${key}/${req.params.id}`).set(req.body);
+      res.json({ id: req.params.id, ...req.body });
+    } catch (err) {
+      console.error(`Error updating ${key}:`, err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   // DELETE by id for arrays
   server.delete(`/${key}/:id`, async (req, res) => {
-    await db.ref(`${key}/${req.params.id}`).remove();
-    res.status(204).end();
+    try {
+      await db.ref(`${key}/${req.params.id}`).remove();
+      res.status(204).end();
+    } catch (err) {
+      console.error(`Error deleting from ${key}:`, err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 });
 
