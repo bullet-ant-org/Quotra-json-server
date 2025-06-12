@@ -1,5 +1,5 @@
 {
-  "name": "quotra-json-server",
+  "name": "quotratempserver",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -13,6 +13,7 @@
   "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.5",
+    "firebase-admin": "^13.4.0",
     "json-server": "^0.17.4",
     "node-cron": "^4.1.0"
   },

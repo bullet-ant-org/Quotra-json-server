@@ -32,3 +32,37 @@
   "bonuses": [],
   "loanOrders": []
 }
+{
+  "users": [
+    {
+      "id": "user1",
+      "username": "moroccoadmin",
+      "email": "moroccoadmin@gmail.com",
+      "profilePictureUrl": "https://example.com/images/avatar_admin.png",
+      "role": "admin",
+      "password": "morocco"
+    }
+  ],
+  "assets": [{ "dummy": true }],
+  "assetOrders": [{ "dummy": true }],
+  "loanTypes": [{ "dummy": true }],
+  "adminDashboardSummary": { "dummy": true },
+  "adminSettings": [
+    {
+      "id": "globalAdminSettings",
+      "checkoutWalletAddress": ""
+    }
+  ],
+  "transactions": [{ "dummy": true }],
+  "depositRequests": [
+    { "dummy": true }
+  ],
+  "withdrawalRequests": [
+    { "dummy": true }
+  ],
+  "activities": [
+    { "dummy": true }
+  ],
+  "bonuses": [{ "dummy": true }],
+  "loanOrders": [{ "dummy": true }]
+}
