@@ -4,6 +4,7 @@ const path = require('path');
 const http = require('http');
 const cron = require('node-cron');
 const fs = require('fs');
+const cors = require('cors');
 
 const serviceAccount = require('./firebase/serviceAccountKey.json');
 
@@ -15,6 +16,9 @@ admin.initializeApp({
 const db = admin.database();
 const server = express();
 server.use(express.json());
+server.use(cors({
+  origin: 'https://quotra-investments.vercel.app',
+}));
 
 const port = process.env.PORT || 3000;
 const BACKUP_DIR = path.join(__dirname, 'backups');
@@ -106,8 +110,13 @@ const endpoints = [
 // GET all items in a collection or object
 endpoints.forEach(key => {
   server.get(`/${key}`, async (req, res) => {
-    const snapshot = await db.ref(key).once('value');
-    res.json(snapshot.val());
+    try {
+      const snapshot = await db.ref(key).once('value');
+      res.json(snapshot.val());
+    } catch (err) {
+      console.error(`Error fetching ${key}:`, err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   // POST (add) to array collections only (skip for objects like adminDashboardSummary)
