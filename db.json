@@ -10,26 +10,26 @@
       "password": "morocco"
     }
   ],
-  "assets": [{ "dummy": true }],
-  "assetOrders": [{ "dummy": true }],
-  "loanTypes": [{ "dummy": true }],
-  "adminDashboardSummary": { "dummy": true },
+  "assets": [],
+  "assetOrders": [],
+  "loanTypes": [],
+  "adminDashboardSummary": {},
   "adminSettings": [
     {
       "id": "globalAdminSettings",
       "checkoutWalletAddress": ""
     }
   ],
-  "transactions": [{ "dummy": true }],
+  "transactions": [],
   "depositRequests": [
-    { "dummy": true }
+    
   ],
   "withdrawalRequests": [
-    { "dummy": true }
+    
   ],
   "activities": [
-    { "dummy": true }
+    
   ],
-  "bonuses": [{ "dummy": true }],
-  "loanOrders": [{ "dummy": true }]
+  "bonuses": [],
+  "loanOrders": []
 }
