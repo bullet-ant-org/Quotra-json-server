@@ -25,10 +25,13 @@ export function useAuth() {
   return c;
 }
 
-export function RequireAuth({ children }: { children: ReactNode }) {
+export const homeFor = (role?: User["role"]) => (role === "admin" ? "/admin" : role === "brand" ? "/brand" : "/home");
+
+export function RequireAuth({ children, role }: { children: ReactNode; role?: User["role"] }) {
   const { user, ready } = useAuth();
   const { pathname } = useLocation();
   if (!ready) return <p className="p-10 text-muted">Loading…</p>;
   if (!user) return <Navigate to={`/login?next=${encodeURIComponent(pathname)}`} replace />;
+  if (role && user.role !== role) return <Navigate to={homeFor(user.role)} replace />;
   return <>{children}</>;
 }

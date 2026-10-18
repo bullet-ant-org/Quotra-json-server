@@ -6,8 +6,8 @@ import { Logo } from "../../components/Logo";
 import { OtpInput } from "../../components/OtpInput";
 import { AuthVisual } from "./AuthVisual";
 import { auth, isDemo } from "../../lib/auth/service";
-import { DEMO_OTP } from "../../lib/auth/demo";
-import { useAuth } from "../../lib/auth/AuthContext";
+import { DEMO_OTP, DEMO_PASSWORD } from "../../lib/auth/demo";
+import { homeFor, useAuth } from "../../lib/auth/AuthContext";
 import { ApiNotConfigured } from "../../lib/api";
 import { useTheme } from "../../lib/theme";
 import { useTitle } from "../../lib/useTitle";
@@ -69,7 +69,7 @@ function GoogleButton({ label, onError, onUser }: { label: string; onError: (m: 
       try { await auth.googleDemo(); onUser(); } finally { setBusy(false); }
       return;
     }
-    onError("Google sign-in isn't available yet because the Roamly API isn't connected.");
+    onError("Google sign-in isn't available yet because the Outsider API isn't connected.");
   };
   return (
     <button type="button" onClick={go} disabled={busy} className="flex w-full items-center justify-center gap-3 rounded-full border-2 border-line bg-bg px-6 py-3.5 font-bold transition-colors hover:border-ink/40 disabled:opacity-60">
@@ -113,12 +113,13 @@ function AuthFlow({ mode }: { mode: Mode }) {
   }, [cooldown]);
 
   const finish = async () => {
-    setUser(await auth.me());
-    nav(next ?? "/home", { replace: true });
+    const u = await auth.me();
+    setUser(u);
+    nav(next && u?.role === "user" ? next : homeFor(u?.role), { replace: true });
   };
 
   const fail = (err: unknown) =>
-    setError(err instanceof ApiNotConfigured ? "Accounts aren't available yet because the Roamly API isn't connected. Nothing was sent." : (err as Error).message);
+    setError(err instanceof ApiNotConfigured ? "Accounts aren't available yet because the Outsider API isn't connected. Nothing was sent." : (err as Error).message);
 
   const validate = (): string | null => {
     const val = v[step.key].trim();
@@ -181,7 +182,7 @@ function AuthFlow({ mode }: { mode: Mode }) {
 
       <div className="relative z-10 -mt-8 flex min-h-[calc(100dvh-13rem)] flex-col rounded-t-[2rem] bg-bg px-5 pb-8 pt-6 sm:px-10 lg:mt-0 lg:min-h-dvh lg:rounded-none lg:pt-8">
         <div className="hidden items-center justify-between lg:flex">
-          <Link to="/" aria-label="Roamly home"><Logo /></Link>
+          <Link to="/" aria-label="Outsider home"><Logo /></Link>
           <button type="button" onClick={toggle} className="grid size-10 place-items-center rounded-full hover:bg-surface" aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
             {theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
           </button>
@@ -190,7 +191,7 @@ function AuthFlow({ mode }: { mode: Mode }) {
         <div className="mx-auto flex w-full max-w-md flex-1 flex-col lg:justify-center lg:py-10">
           {isDemo && (
             <p className="mb-5 rounded-xl bg-accent-soft px-4 py-2.5 text-xs font-medium text-accent-text">
-              Demo mode: nothing is sent. Use code <strong>{DEMO_OTP}</strong> when asked.
+              Demo: log in as <strong>user@gmail.com</strong>, <strong>brand@gmail.com</strong> or <strong>admin@gmail.com</strong> with password <strong>{DEMO_PASSWORD}</strong>. Sign-up code is <strong>{DEMO_OTP}</strong>.
             </p>
           )}
 
@@ -293,7 +294,7 @@ function AuthFlow({ mode }: { mode: Mode }) {
               )}
 
               <p className="text-center text-sm text-muted">
-                {mode === "login" && <>New to Roamly? <Link to={`/register${qs}`} replace className="font-bold text-accent-text hover:underline">Create an account</Link></>}
+                {mode === "login" && <>New to Outsider? <Link to={`/register${qs}`} replace className="font-bold text-accent-text hover:underline">Create an account</Link></>}
                 {mode === "register" && <>Already have an account? <Link to={`/login${qs}`} replace className="font-bold text-accent-text hover:underline">Log in</Link></>}
                 {mode === "forgot" && <>Remembered it? <Link to={`/login${qs}`} replace className="font-bold text-accent-text hover:underline">Back to log in</Link></>}
               </p>

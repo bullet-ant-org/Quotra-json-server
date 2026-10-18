@@ -6,7 +6,7 @@ const cards = [
   { q: "“Where should we go?”", qa: "“Idk, you pick.”", a: "Browse by mood, budget and distance, save places to a collection and send the link to the group chat." },
   { q: "Google says it's open.", qa: "It's not.", a: "Hours, prices and answers come from the business itself, with the date they last confirmed." },
   { q: "The “hidden gem” was a two-hour drive.", qa: "And a letdown.", a: "Real distance, real prices and reviews from people who went, with photos of what it's actually like." },
-  { q: "You went. You spent.", qa: "You got nothing back.", a: "Check in at a place and earn Roamly Tokens toward free entry, a drink or an experience." },
+  { q: "You went. You spent.", qa: "You got nothing back.", a: "Check in at a place and earn Outsider Tokens toward free entry, a drink or an experience." },
 ];
 
 function Flip({ c }: { c: (typeof cards)[number] }) {
@@ -24,7 +24,7 @@ function Flip({ c }: { c: (typeof cards)[number] }) {
           <span className="inline-flex items-center gap-2 text-sm font-semibold text-accent-text"><RotateCw className="size-4" aria-hidden="true" />Tap to fix it</span>
         </div>
         <div className="absolute inset-0 flex flex-col justify-between rounded-[1.75rem] bg-accent p-6 text-accent-ink [backface-visibility:hidden] [transform:rotateY(180deg)]">
-          <p className="font-display text-sm font-bold opacity-80">With Roamly</p>
+          <p className="font-display text-sm font-bold opacity-80">The outsider move</p>
           <p className="font-display text-xl font-bold leading-tight sm:text-2xl">{c.a}</p>
         </div>
       </motion.div>

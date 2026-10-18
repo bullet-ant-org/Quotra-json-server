@@ -7,6 +7,7 @@ export interface User {
   lastName: string;
   username: string;
   email: string;
+  role: "user" | "brand" | "admin";
 }
 
 export interface SignupDraft {
@@ -44,5 +45,6 @@ const apiAuth: AuthService = {
   logout: () => post("/auth/logout", {}).then(() => undefined),
 };
 
-export const isDemo = import.meta.env.VITE_DEMO_MODE === "true" && !apiBase;
+// Demo mode runs whenever no API is configured, unless explicitly switched off.
+export const isDemo = !apiBase && import.meta.env.VITE_DEMO_MODE !== "false";
 export const auth: AuthService = isDemo ? demoAuth : apiAuth;

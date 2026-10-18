@@ -1,26 +1,25 @@
-# Roamly frontend status
+# Outsider frontend status
 
-## Run it
-- `npm run dev` — real mode. Without `VITE_API_URL`, auth and sending say the API isn't connected.
-- `npm run dev:demo` — demo mode: fake auth in this browser only, code `123456`, sample signed-in data.
+## Demo logins (demo mode only: on whenever VITE_API_URL is unset)
+| Role  | Email            | Password  | Lands on |
+|-------|------------------|-----------|----------|
+| User  | user@gmail.com   | 12345678  | /home (feed) |
+| Brand | brand@gmail.com  | 12345678  | /brand |
+| Admin | admin@gmail.com  | 12345678  | /admin |
+Google sign-in goes to the user feed. Sign-up code: 123456. These accounts must never exist on a real backend.
 
-## Public pages
-Landing, Explore, Map (MapLibre + OSM), Destination, Community, Rewards, For business, About, Terms,
-Privacy, Token terms, Guidelines, 404. Mobile bottom dock, light/dark theme.
+## User app
+Feed (stories, composer with photo/video upload, location and people tags, hashtags, going parties; posts with
+photo grid + lightbox, like, comment, repost, book, message place, block), Reels, Events (token reservations with
+limited spots + QR), Tokens (daily passes with limited slots), Profile (banner, highlights, posts/reels/tagged),
+other profiles at /u/:username, Messages, Notifications, Settings (blocked accounts, security, data).
 
-## Auth (one page: /login, /register, /forgot-password)
-- The route you arrive on picks the form; links inside switch modes.
-- Login: Google, then email, then password.
-- Sign up: Google or first name, last name, username (availability check), email, password, OTP.
-- Forgot password: email, then OTP, then signed in.
-- Proposed API contract in `src/lib/auth/service.ts`.
+## Brand dashboard (/brand)
+Overview, Feed, My places (submit for review), Ads & promotions, Visit requests, Inbox, Events.
 
-## Signed-in pages (behind RequireAuth)
-Home, Wallet (balance, challenges, offers, history, badges), Messages (list + thread),
-Notifications, Profile, Settings. Destination check-in sheet checks device distance first.
+## Admin dashboard (/admin)
+Overview, Token passes (budget ÷ tokens per person = spots), Events sponsorship, Users (suspend), Places & brands
+(approve), Ads review, Reports.
 
 ## Not connected
-- All data comes from `src/fixtures/*`. Signed-in fixtures must be replaced with real APIs before launch.
-- Settings toggles don't persist. Check-ins never award tokens client-side.
-- Legal pages are unreviewed drafts. Cover art is placeholder.
-- PWA: manifest only.
+All state lives in the browser (`src/lib/store.ts`) so the three roles share data on one device. Replace with APIs.

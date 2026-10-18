@@ -1,93 +1,62 @@
-import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ChevronDown, Coins, MapPin, Search, Target } from "lucide-react";
-import { useAuth } from "../../lib/auth/AuthContext";
-import { destinations } from "../../fixtures/destinations";
-import { posts } from "../../fixtures/posts";
-import { bySlug } from "../../fixtures/destinations";
-import { balance, challenges } from "../../fixtures/account";
-import { DestinationCard } from "../../components/DestinationCard";
-import { Avatar } from "../../components/Avatar";
+import { Link } from "react-router-dom";
+import { CalendarDays, Clapperboard, Coins, Compass, Home as HomeIcon, MessageCircle, Ticket, User } from "lucide-react";
+import { Stories } from "../../components/feed/Stories";
+import { Composer } from "../../components/feed/PostComposer";
+import { PostCard } from "../../components/feed/PostCard";
+import { actions, passSlots, person, useStore } from "../../lib/store";
+import { bySlug, destPhoto } from "../../fixtures/destinations";
 import { useTitle } from "../../lib/useTitle";
 
-const cities = ["Lagos", "Abuja", "Port Harcourt", "Calabar", "Kano"];
-
-function greeting() {
-  const h = new Date().getHours();
-  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-}
-
-function Rail({ title, to, children }: { title: string; to?: string; children: React.ReactNode }) {
-  return (
-    <section className="mt-10">
-      <div className="flex items-end justify-between gap-3">
-        <h2 className="text-2xl font-bold sm:text-3xl">{title}</h2>
-        {to && <Link to={to} className="shrink-0 text-sm font-bold text-accent-text">See all</Link>}
-      </div>
-      <div className="mt-4">{children}</div>
-    </section>
-  );
-}
+const side = [[HomeIcon, "Feed", "/home"], [CalendarDays, "Events", "/events"], [Clapperboard, "Reels", "/reels"], [Ticket, "Passes", "/wallet"], [Compass, "Explore", "/explore"], [MessageCircle, "Messages", "/messages"], [User, "Profile", "/profile"]] as const;
 
 export default function Home() {
-  useTitle("Home");
-  const { user } = useAuth();
-  const nav = useNavigate();
-  const [city, setCity] = useState("Port Harcourt");
-  const [q, setQ] = useState("");
-  const nearby = [...destinations].sort((a, b) => Number(b.city === city) - Number(a.city === city)).slice(0, 3);
-  const offers = destinations.filter((d) => d.tokenOffer).slice(0, 3);
-  const fresh = [...destinations].reverse().slice(0, 3);
-  const go = (e: FormEvent) => { e.preventDefault(); nav(`/explore${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`); };
+  useTitle("Feed");
+  const s = useStore((x) => x);
+  const me = person(s, s.me);
+  const posts = s.posts.filter((p) => !s.blocked.includes(p.authorId));
+  const passes = s.passes.filter((p) => p.active && p.claimed.length < passSlots(p)).slice(0, 3);
+  const suggest = s.people.filter((p) => p.id !== s.me && !p.following && !s.blocked.includes(p.id)).slice(0, 3);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-10 pt-6 sm:px-6">
-      <div className="flex items-center justify-between gap-3">
-        <label className="relative inline-flex items-center gap-1.5 rounded-full bg-surface py-2 pl-3 pr-8 text-sm font-semibold">
-          <MapPin className="size-4 text-accent" aria-hidden="true" />
-          <span className="sr-only">Your city</span>
-          <select value={city} onChange={(e) => setCity(e.target.value)} className="appearance-none bg-transparent outline-none">{cities.map((c) => <option key={c}>{c}</option>)}</select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 size-4 text-muted" aria-hidden="true" />
-        </label>
-        <Link to="/wallet" className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3.5 py-2 text-sm font-bold text-accent-ink sm:hidden"><Coins className="size-4" aria-hidden="true" />{balance}</Link>
-      </div>
+    <div className="mx-auto grid max-w-7xl gap-6 px-4 pb-10 pt-4 sm:px-6 lg:grid-cols-[15rem_minmax(0,36rem)_20rem] lg:justify-center">
+      <aside className="hidden lg:block">
+        <nav className="sticky top-20 space-y-1">
+          <Link to="/profile" className="flex items-center gap-3 rounded-2xl p-2.5 hover:bg-surface"><img src={me.avatar} alt="" className="size-9 rounded-full object-cover" /><span className="font-bold">{me.name}</span></Link>
+          {side.map(([I, l, to]) => <Link key={to} to={to} className="flex items-center gap-3 rounded-2xl p-2.5 font-semibold hover:bg-surface"><I className="size-6 text-accent" />{l}</Link>)}
+        </nav>
+      </aside>
 
-      <h1 className="mt-5 text-[2.2rem] font-extrabold leading-[1.02] sm:text-5xl">{greeting()}, {user!.firstName}.<br /><span className="text-muted">Where to today?</span></h1>
+      <main className="min-w-0 space-y-4">
+        <Stories />
+        <Composer />
+        {posts.map((p) => <PostCard key={p.id} post={p} />)}
+        <p className="py-6 text-center text-sm text-muted">You're all caught up. Time to go outside.</p>
+      </main>
 
-      <form onSubmit={go} role="search" className="mt-5 flex items-center gap-2 rounded-full border border-line bg-bg py-1.5 pl-5 pr-1.5 shadow-sm focus-within:border-accent sm:max-w-xl">
-        <Search className="size-5 text-muted" aria-hidden="true" />
-        <label htmlFor="home-q" className="sr-only">Search</label>
-        <input id="home-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Pool, rooftop, waterfall…" className="min-w-0 flex-1 bg-transparent py-2 outline-none placeholder:text-muted" />
-        <button className="rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-accent-ink">Search</button>
-      </form>
-
-      <Link to="/wallet" className="mt-6 flex items-center gap-4 rounded-3xl bg-accent p-5 text-accent-ink">
-        <Target className="size-10 shrink-0" aria-hidden="true" />
-        <div className="min-w-0 flex-1">
-          <p className="font-display text-lg font-bold">{challenges[0].title}: {challenges[0].progress} of {challenges[0].goal}</p>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-accent-ink/25"><div className="h-full rounded-full bg-accent-ink" style={{ width: `${(challenges[0].progress / challenges[0].goal) * 100}%` }} /></div>
-          <p className="mt-1.5 text-sm opacity-90">{challenges[0].detail}. +{challenges[0].reward} tokens.</p>
+      <aside className="hidden space-y-5 lg:block">
+        <div className="sticky top-20 space-y-5">
+          <section className="rounded-3xl bg-accent p-5 text-accent-ink">
+            <p className="text-sm font-semibold opacity-90">Your tokens</p>
+            <p className="font-display text-4xl font-extrabold">{s.balance}</p>
+            <Link to="/wallet" className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold underline underline-offset-4"><Coins className="size-4" />See today's passes</Link>
+          </section>
+          <section>
+            <h2 className="mb-2 font-display text-lg font-bold">Passes dropping today</h2>
+            <ul className="space-y-2">{passes.map((p) => { const d = bySlug(p.place); return (
+              <li key={p.id}><Link to="/wallet" className="flex items-center gap-3 rounded-2xl p-2 hover:bg-surface"><img src={destPhoto(p.place, 160)} alt="" className="size-12 rounded-xl object-cover" />
+                <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{p.title}</span><span className="block truncate text-sm text-muted">{d?.name} · {passSlots(p) - p.claimed.length} left</span></span>
+                <span className="text-sm font-bold text-accent-text">{p.perPerson}</span></Link></li>
+            ); })}</ul>
+          </section>
+          <section>
+            <h2 className="mb-2 font-display text-lg font-bold">Outsiders to follow</h2>
+            <ul className="space-y-2">{suggest.map((p) => (
+              <li key={p.id} className="flex items-center gap-3"><img src={p.avatar} alt="" className="size-10 rounded-full object-cover" /><Link to={`/u/${p.username}`} className="min-w-0 flex-1"><span className="block truncate font-semibold">{p.name}</span><span className="text-sm text-muted">@{p.username}</span></Link>
+                <button onClick={() => actions.follow(p.id)} className="rounded-full bg-accent-soft px-3 py-1.5 text-sm font-bold text-accent-text">Follow</button></li>
+            ))}</ul>
+          </section>
         </div>
-      </Link>
-
-      <Rail title={`Near ${city}`} to="/map"><ul className="grid gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">{nearby.map((d) => <li key={d.slug}><DestinationCard d={d} /></li>)}</ul></Rail>
-      <Rail title="Spend your tokens" to="/wallet"><ul className="grid gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">{offers.map((d) => <li key={d.slug}><DestinationCard d={d} /></li>)}</ul></Rail>
-
-      <Rail title="From people you follow" to="/community">
-        <ul className="grid gap-3 md:grid-cols-2">
-          {posts.slice(0, 2).map((p) => {
-            const d = bySlug(p.destinationSlug)!;
-            return (
-              <li key={p.id} className="rounded-2xl border border-line p-4">
-                <div className="flex items-center gap-3 text-sm"><Avatar name={p.author} hue={d.hue} className="size-9 text-sm" /><p><span className="font-semibold">{p.author}</span> <span className="text-muted">at</span> <Link to={`/destinations/${d.slug}`} className="font-semibold text-accent-text">{d.name}</Link></p></div>
-                <p className="mt-2">{p.body}</p>
-              </li>
-            );
-          })}
-        </ul>
-      </Rail>
-
-      <Rail title="Just added"><ul className="grid gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">{fresh.map((d) => <li key={d.slug}><DestinationCard d={d} /></li>)}</ul></Rail>
+      </aside>
     </div>
   );
 }

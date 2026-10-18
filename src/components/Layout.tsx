@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Bell, Coins, Compass, Home, MapPinned, Menu, MessageCircle, Moon, Sun, User as UserIcon, Users, X } from "lucide-react";
 import { useAuth } from "../lib/auth/AuthContext";
-import { balance, conversations, notifications } from "../fixtures/account";
-import { Avatar } from "./Avatar";
+import { conversations, notifications } from "../fixtures/account";
+import { useStore, person } from "../lib/store";
+import { CalendarDays, Clapperboard } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { Logo } from "./Logo";
 import { useEffect } from "react";
@@ -31,7 +32,8 @@ function ThemeToggle() {
 }
 
 function SignedInActions() {
-  const { user } = useAuth();
+  const balance = useStore((s) => s.balance);
+  const avatar = useStore((s) => person(s, s.me).avatar);
   const unreadMsgs = conversations.reduce((n, c) => n + c.unread, 0);
   const unreadNotes = notifications.filter((n) => n.unread).length;
   const icon = "relative grid size-10 place-items-center rounded-full hover:bg-surface";
@@ -41,7 +43,7 @@ function SignedInActions() {
       <Link to="/wallet" className="hidden items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1.5 text-sm font-bold text-accent-text sm:inline-flex" aria-label={`Wallet, ${balance} tokens`}><Coins className="size-4" aria-hidden="true" />{balance}</Link>
       <Link to="/messages" className={icon} aria-label={`Messages, ${unreadMsgs} unread`}><MessageCircle className="size-5" aria-hidden="true" />{dot(unreadMsgs)}</Link>
       <Link to="/notifications" className={icon} aria-label={`Notifications, ${unreadNotes} unread`}><Bell className="size-5" aria-hidden="true" />{dot(unreadNotes)}</Link>
-      <Link to="/profile" className="ml-1 hidden lg:block" aria-label="Your profile"><Avatar name={user!.firstName} className="size-9 text-sm" /></Link>
+      <Link to="/profile" className="ml-1 hidden lg:block" aria-label="Your profile"><img src={avatar} alt="" className="size-9 rounded-full object-cover" /></Link>
     </>
   );
 }
@@ -58,9 +60,9 @@ function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
-        <Link to={user ? "/home" : "/"} aria-label="Roamly home"><Logo /></Link>
+        <Link to={user ? "/home" : "/"} aria-label="Outsider home"><Logo /></Link>
         <nav className="ml-6 hidden items-center gap-1 lg:flex" aria-label="Main">
-          {nav.map((n) => <NavLink key={n.to} to={n.to} className={link}>{n.label}</NavLink>)}
+          {(user ? [{ to: "/home", label: "Feed" }, { to: "/events", label: "Events" }, { to: "/reels", label: "Reels" }, { to: "/wallet", label: "Tokens" }, { to: "/explore", label: "Explore" }] : nav).map((n) => <NavLink key={n.to} to={n.to} className={link}>{n.label}</NavLink>)}
         </nav>
         <div className="ml-auto flex items-center gap-1">
           <ThemeToggle />
@@ -86,7 +88,7 @@ function Header() {
         <nav id="mobile-nav" className="border-t border-line bg-bg px-4 py-3 lg:hidden" aria-label="Mobile">
           <ul className="grid gap-1">
             <li><NavLink to="/for-business" className={(s) => `block ${link(s)} text-base`}>For business</NavLink></li>
-            <li><NavLink to="/about" className={(s) => `block ${link(s)} text-base`}>About Roamly</NavLink></li>
+            <li><NavLink to="/about" className={(s) => `block ${link(s)} text-base`}>About Outsider</NavLink></li>
             <li><NavLink to="/community" className={(s) => `block ${link(s)} text-base`}>Community</NavLink></li>
             {user ? <li><NavLink to="/settings" className={(s) => `block ${link(s)} text-base`}>Settings</NavLink></li> : <li><NavLink to="/login" className={(s) => `block ${link(s)} text-base`}>Log in</NavLink></li>}
           </ul>
@@ -107,9 +109,9 @@ const dockItems = [
 
 const signedInDock = [
   { to: "/home", label: "Home", icon: Home, end: true },
-  { to: "/explore", label: "Explore", icon: Compass },
+  { to: "/events", label: "Events", icon: CalendarDays },
   { to: "/map", label: "Map", icon: MapPinned, primary: true },
-  { to: "/wallet", label: "Rewards", icon: Coins },
+  { to: "/reels", label: "Reels", icon: Clapperboard },
   { to: "/profile", label: "Profile", icon: UserIcon },
 ];
 
@@ -141,7 +143,7 @@ function Dock() {
 }
 
 const footerCols = [
-  { title: "Roamly", links: [["About", "/about"], ["Explore places", "/explore"], ["Map", "/map"], ["Community", "/community"]] },
+  { title: "Outsider", links: [["About", "/about"], ["Explore places", "/explore"], ["Map", "/map"], ["Community", "/community"]] },
   { title: "Rewards", links: [["How tokens work", "/rewards"], ["Token terms", "/token-terms"], ["Community guidelines", "/guidelines"]] },
   { title: "Business", links: [["List your place", "/for-business"], ["Business sign up", "/register?type=business"]] },
   { title: "Legal", links: [["Terms of service", "/terms"], ["Privacy policy", "/privacy"]] },
@@ -153,7 +155,7 @@ function Footer() {
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_repeat(4,1fr)]">
         <div className="space-y-3">
           <Logo />
-          <p className="max-w-64 text-sm text-muted">Discover places worth experiencing. Starting in Nigeria.</p>
+          <p className="max-w-64 text-sm text-muted">Go out more. Starting in Nigeria.</p>
         </div>
         {footerCols.map((c) => (
           <div key={c.title}>
@@ -166,7 +168,7 @@ function Footer() {
           </div>
         ))}
       </div>
-      <div className="border-t border-line py-5 text-center text-xs text-muted">© {new Date().getFullYear()} Roamly</div>
+      <div className="border-t border-line py-5 text-center text-xs text-muted">© {new Date().getFullYear()} Outsider</div>
     </footer>
   );
 }

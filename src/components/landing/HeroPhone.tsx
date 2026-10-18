@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { BadgeCheck, Coins, Navigation } from "lucide-react";
-import { bySlug, formatNaira } from "../../fixtures/destinations";
-import { CoverArt } from "../CoverArt";
+import { bySlug, destPhoto, formatNaira } from "../../fixtures/destinations";
+import { Img } from "../Img";
 
 // Illustrative layout, not geographic. Pins cycle like a live feed.
 const stops = [
@@ -56,7 +56,7 @@ export function HeroPhone() {
                 className="rounded-2xl border border-line bg-bg p-2.5 shadow-xl"
               >
                 <div className="flex gap-2.5">
-                  <CoverArt hue={d.hue} category={d.category} className="size-16 shrink-0 rounded-xl" />
+                  <Img src={destPhoto(d.slug, 200)} alt="" className="size-16 shrink-0 rounded-xl" />
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-1 truncate font-display text-[15px] font-bold leading-tight">{d.name}{d.verified && <BadgeCheck className="size-3.5 shrink-0 text-accent-text" />}</p>
                     <p className="text-xs text-muted">{d.city} · {cur.away}</p>

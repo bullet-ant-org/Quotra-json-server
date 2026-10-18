@@ -3,12 +3,12 @@ import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { Coins, Star } from "lucide-react";
 import { Logo } from "../../components/Logo";
-import { CoverArt } from "../../components/CoverArt";
-import { destinations } from "../../fixtures/destinations";
+import { Img } from "../../components/Img";
+import { destinations, destPhoto } from "../../fixtures/destinations";
 
 const lines = {
-  login: "Good to see you again. Your saved places missed you.",
-  register: "Your next favourite place is closer than you think.",
+  login: "Welcome back, outsider. Where are we going today?",
+  register: "Join the people who actually go out.",
   forgot: "Happens to everyone. Let's get you back in.",
 };
 
@@ -32,7 +32,7 @@ export function AuthVisual({ mode }: { mode: keyof typeof lines }) {
       </svg>
 
       <div className="relative flex h-full flex-col px-5 pt-5 lg:p-14">
-        <Link to="/" aria-label="Roamly home" className="lg:hidden"><span className="[&_*]:!text-hero-ink"><Logo /></span></Link>
+        <Link to="/" aria-label="Outsider home" className="lg:hidden"><span className="[&_*]:!text-hero-ink"><Logo /></span></Link>
         <p className="mt-6 max-w-sm font-display text-[1.65rem] font-extrabold leading-[1.05] lg:order-2 lg:mt-auto lg:max-w-lg lg:text-6xl">{lines[mode]}</p>
 
         <div className="relative mx-auto hidden h-80 w-full max-w-sm lg:order-1 lg:mt-16 lg:block" aria-hidden="true">
@@ -45,7 +45,7 @@ export function AuthVisual({ mode }: { mode: keyof typeof lines }) {
               transition={{ type: "spring", stiffness: 160, damping: 20 }}
               className="absolute inset-x-0 top-0 overflow-hidden rounded-3xl bg-bg text-ink shadow-2xl"
             >
-              <CoverArt hue={d.hue} category={d.category} className="h-44 w-full" />
+              <Img src={destPhoto(d.slug, 700)} alt="" className="h-44 w-full [mask-image:linear-gradient(to_bottom,#000_60%,transparent)]" />
               <div className="space-y-1 p-5">
                 <p className="font-display text-xl font-bold">{d.name}</p>
                 <p className="flex items-center gap-1 text-sm text-muted"><Star className="size-4 fill-accent text-accent" />{d.rating.toFixed(1)} · {d.city}</p>

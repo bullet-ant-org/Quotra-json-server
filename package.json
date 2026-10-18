@@ -1,5 +1,5 @@
 {
-  "name": "roamly-frontend",
+  "name": "outsider-frontend",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -14,9 +14,11 @@
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",
     "@fontsource-variable/figtree": "^5.3.0",
+    "@types/qrcode": "^1.5.6",
     "lucide-react": "^1.59.0",
     "maplibre-gl": "^6.14.0",
     "motion": "^14.3.0",
+    "qrcode": "^1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.4"

@@ -19,7 +19,7 @@ function Thread({ id }: { id: string }) {
   const send = (e: FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
-    if (!isDemo) return setErr("Messages can't be sent yet because the Roamly API isn't connected.");
+    if (!isDemo) return setErr("Messages can't be sent yet because the Outsider API isn't connected.");
     setMsgs((m) => [...m, { id: String(Date.now()), from: "me", text: text.trim(), time: "now" }]);
     setText("");
   };

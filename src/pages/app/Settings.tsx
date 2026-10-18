@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight, LogOut } from "lucide-react";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { interests } from "../../fixtures/account";
+import { actions, person, useStore } from "../../lib/store";
 import { useTitle } from "../../lib/useTitle";
 
 function Toggle({ label, hint, defaultOn = false }: { label: string; hint?: string; defaultOn?: boolean }) {
@@ -23,6 +24,7 @@ export default function Settings() {
   useTitle("Settings");
   const { user, logout } = useAuth();
   const nav = useNavigate();
+  const blocked = useStore((s) => s.blocked.map((id) => person(s, id)));
   const [picked, setPicked] = useState<string[]>(["Nature", "Dining", "Resorts"]);
 
   return (
@@ -58,7 +60,29 @@ export default function Settings() {
           <Toggle label="Rewards and challenges" defaultOn />
           <Toggle label="Messages" defaultOn />
           <Toggle label="Likes, comments and follows" defaultOn />
-          <Toggle label="Offers and promotions" hint="Optional marketing from Roamly" />
+          <Toggle label="Offers and promotions" hint="Optional marketing from Outsider" />
+        </div>
+      </section>
+
+      <section className="space-y-3"><h2 className="text-lg font-bold">Blocked accounts</h2>
+        {blocked.length ? <div className={group}>{blocked.map((p) => (
+          <div key={p.id} className="flex items-center gap-3 px-4 py-3"><img src={p.avatar} alt="" className="size-10 rounded-full object-cover" /><span className="flex-1"><span className="block font-semibold">{p.name}</span><span className="text-sm text-muted">@{p.username}</span></span>
+            <button onClick={() => actions.unblock(p.id)} className="rounded-full bg-surface px-4 py-2 text-sm font-bold">Unblock</button></div>
+        ))}</div> : <p className="text-sm text-muted">You haven't blocked anyone. Use the ⋯ menu on a post or a profile to block someone.</p>}
+      </section>
+
+      <section className="space-y-3"><h2 className="text-lg font-bold">Security</h2>
+        <div className={group}>
+          <Toggle label="Two-step verification" hint="Ask for a code when you log in on a new device" />
+          <div className="flex items-center justify-between px-4 py-4"><span><span className="block font-semibold">Active sessions</span><span className="text-sm text-muted">This browser</span></span><button className="text-sm font-bold text-accent-text">Log out others</button></div>
+        </div>
+      </section>
+
+      <section className="space-y-3"><h2 className="text-lg font-bold">Your data</h2>
+        <div className={group}>
+          <button className="flex w-full justify-between px-4 py-4 text-left font-semibold">Download my data<ChevronRight className="size-4 text-muted" /></button>
+          <button onClick={() => { if (confirm("Reset all demo data on this device?")) actions.reset(); }} className="flex w-full justify-between px-4 py-4 text-left font-semibold">Reset demo data<ChevronRight className="size-4 text-muted" /></button>
+          <button className="flex w-full justify-between px-4 py-4 text-left font-semibold text-red-600">Deactivate account<ChevronRight className="size-4" /></button>
         </div>
       </section>
 

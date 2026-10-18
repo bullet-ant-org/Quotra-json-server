@@ -17,10 +17,16 @@ import Notifications from "./pages/app/Notifications";
 import Profile from "./pages/app/Profile";
 import Settings from "./pages/app/Settings";
 import { RequireAuth } from "./lib/auth/AuthContext";
+import Reels from "./pages/app/Reels";
+import Events from "./pages/app/Events";
+
+const Admin = lazy(() => import("./pages/dash/Admin"));
+const Brand = lazy(() => import("./pages/dash/Brand"));
+const wait = <p className="p-10 text-muted">Loading…</p>;
 
 // MapLibre is heavy; keep it out of the landing bundle.
 const MapPage = lazy(() => import("./pages/MapPage"));
-const guard = (el: React.ReactNode) => <RequireAuth>{el}</RequireAuth>;
+const guard = (el: React.ReactNode) => <RequireAuth role="user">{el}</RequireAuth>;
 
 export default function App() {
   return (
@@ -46,9 +52,14 @@ export default function App() {
         <Route path="notifications" element={guard(<Notifications />)} />
         <Route path="profile" element={guard(<Profile />)} />
         <Route path="settings" element={guard(<Settings />)} />
+        <Route path="reels" element={guard(<Reels />)} />
+        <Route path="events" element={guard(<Events />)} />
+        <Route path="u/:username" element={guard(<Profile />)} />
         <Route path="*" element={<NotFound />} />
       </Route>
       {/* One auth page; the route that brought you here picks the starting form. */}
+      <Route path="admin/*" element={<RequireAuth role="admin"><Suspense fallback={wait}><Admin /></Suspense></RequireAuth>} />
+      <Route path="brand/*" element={<RequireAuth role="brand"><Suspense fallback={wait}><Brand /></Suspense></RequireAuth>} />
       <Route path="login" element={<AuthPage />} />
       <Route path="register" element={<AuthPage />} />
       <Route path="forgot-password" element={<AuthPage />} />

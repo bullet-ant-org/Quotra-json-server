@@ -5,7 +5,7 @@ import { DestinationCard } from "../components/DestinationCard";
 import { useTitle } from "../lib/useTitle";
 
 const steps = [
-  { icon: MapPinCheck, title: "Check in at a place", text: "Open the place in Roamly while you're there. We compare your location with the venue and may ask for a quick retry if GPS is weak." },
+  { icon: MapPinCheck, title: "Check in at a place", text: "Open the place in Outsider while you're there. We compare your location with the venue and may ask for a quick retry if GPS is weak." },
   { icon: Coins, title: "Tokens land in your wallet", text: "Verified visits earn tokens once per place within the visit window. Every movement is listed in your history." },
   { icon: QrCode, title: "Redeem with the business", text: "Pick an offer, confirm the token cost and show your one-time code or QR to staff." },
 ];
@@ -15,8 +15,8 @@ export default function Rewards() {
   const offers = destinations.filter((d) => d.tokenOffer);
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-      <h1 className="max-w-3xl text-4xl font-extrabold sm:text-6xl">Your weekends could pay you back.</h1>
-      <p className="mt-4 max-w-2xl text-lg text-muted">Roamly Tokens are promotional rewards for real visits and useful contributions. You can spend them on offers published by participating businesses.</p>
+      <h1 className="max-w-3xl text-4xl font-extrabold sm:text-6xl">Go out. Earn tokens. Spend them on passes.</h1>
+      <p className="mt-4 max-w-2xl text-lg text-muted">Outsider Tokens are promotional rewards for real visits and useful contributions. You can spend them on offers published by participating businesses.</p>
       <div className="mt-6 flex gap-3">
         <Link to="/register" className="rounded-full bg-accent px-6 py-3 font-bold text-accent-ink">Start earning</Link>
         <Link to="/token-terms" className="rounded-full border border-line px-6 py-3 font-semibold">Read the token terms</Link>

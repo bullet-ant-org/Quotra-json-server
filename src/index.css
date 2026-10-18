@@ -120,3 +120,6 @@ p { text-wrap: pretty; }
 html, body { overflow-x: clip; }
 
 input:not([type="checkbox"]):not([type="radio"]):focus-visible, select:focus-visible { outline: none; }
+
+@keyframes grow { from { width: 0 } to { width: 100% } }
+@keyframes kenburns { from { transform: scale(1) } to { transform: scale(1.18) translate(-2%, -2%) } }

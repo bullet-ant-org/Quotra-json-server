@@ -1,8 +1,8 @@
-// Thin client for the Roamly API. Until VITE_API_URL is set, calls fail with
+// Thin client for the Outsider API. Until VITE_API_URL is set, calls fail with
 // ApiNotConfigured so the UI can say so instead of pretending to succeed.
 export class ApiNotConfigured extends Error {
   constructor() {
-    super("The Roamly API isn't connected yet.");
+    super("The Outsider API isn't connected yet.");
   }
 }
 

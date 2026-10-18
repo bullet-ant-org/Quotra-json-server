@@ -1,9 +1,9 @@
 import { Link, useParams } from "react-router-dom";
 import { BadgeCheck, Clock, Coins, MapPin, MessageCircle, Navigation, Share2 } from "lucide-react";
-import { bySlug, destinations, formatNaira } from "../fixtures/destinations";
+import { bySlug, destPhoto, destinations, formatNaira } from "../fixtures/destinations";
 import { categoryById } from "../fixtures/categories";
 import { posts } from "../fixtures/posts";
-import { CoverArt } from "../components/CoverArt";
+import { Img } from "../components/Img";
 import { Rating } from "../components/Stars";
 import { SignInPrompt } from "../components/SignInPrompt";
 import { DestinationCard } from "../components/DestinationCard";
@@ -31,7 +31,7 @@ export default function Destination() {
 
   return (
     <article className="mx-auto max-w-7xl px-4 pb-28 pt-0 sm:px-6 sm:pt-8 lg:pb-8">
-      <div className="-mx-4 overflow-hidden sm:mx-0 sm:rounded-[1.75rem]"><CoverArt hue={d.hue} category={d.category} className="h-72 w-full sm:h-96" /></div>
+      <div className="-mx-4 overflow-hidden sm:mx-0 sm:rounded-[1.75rem]"><Img src={destPhoto(d.slug, 1600)} alt={d.name} className="h-72 w-full sm:h-[28rem] [mask-image:linear-gradient(to_bottom,#000_55%,transparent)]" /></div>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-10">
@@ -90,7 +90,7 @@ export default function Destination() {
           </div>
 
           <div className="space-y-3 rounded-2xl bg-accent-soft p-5">
-            <p className="flex items-center gap-2 font-display text-lg font-bold"><Coins className="size-5 text-accent-text" aria-hidden="true" />Roamly Tokens</p>
+            <p className="flex items-center gap-2 font-display text-lg font-bold"><Coins className="size-5 text-accent-text" aria-hidden="true" />Outsider Tokens</p>
             <p className="text-sm">Check in here to earn <strong>{d.checkInTokens} tokens</strong>. You'll need to be at the place when you check in.</p>
             {d.tokenOffer && <p className="rounded-lg bg-bg p-3 text-sm font-semibold">{d.tokenOffer}</p>}
             <CheckInButton d={d} className="flex w-full items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-bg" />

@@ -51,9 +51,9 @@ export function CheckInButton({ d, className = "" }: { d: Destination; className
               </div>
               <div className="mt-4 text-muted" aria-live="polite">
                 {st.s === "locating" && <p className="flex items-center gap-2"><Loader2 className="size-5 animate-spin text-accent" />Finding your location…</p>}
-                {st.s === "denied" && <p className="flex gap-2"><MapPinOff className="size-5 shrink-0 text-accent" />Roamly needs your location to check you in. Allow location access in your browser settings and try again.</p>}
+                {st.s === "denied" && <p className="flex gap-2"><MapPinOff className="size-5 shrink-0 text-accent" />Outsider needs your location to check you in. Allow location access in your browser settings and try again.</p>}
                 {st.s === "far" && <p className="flex gap-2"><Navigation className="size-5 shrink-0 text-accent" />You're about {st.km < 10 ? st.km.toFixed(1) : Math.round(st.km)} km away. Check-ins only work when you're at the place.</p>}
-                {st.s === "near" && <p>{isDemo ? "You're here. In demo mode nothing is sent, so no tokens were added." : "You're here, but check-ins aren't available yet because the Roamly API isn't connected. No tokens were added."}</p>}
+                {st.s === "near" && <p>{isDemo ? "You're here. In demo mode nothing is sent, so no tokens were added." : "You're here, but check-ins aren't available yet because the Outsider API isn't connected. No tokens were added."}</p>}
               </div>
               <button onClick={() => setOpen(false)} className="mt-6 w-full rounded-full bg-accent py-3.5 font-bold text-accent-ink">Done</button>
             </motion.div>

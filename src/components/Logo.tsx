@@ -11,7 +11,7 @@ export function Logo() {
   return (
     <span className="inline-flex items-center gap-1.5 text-accent">
       <PinMark />
-      <span className="font-display text-2xl font-extrabold tracking-tight text-ink">Roamly</span>
+      <span className="font-display text-2xl font-extrabold tracking-tight text-ink">Outsider</span>
     </span>
   );
 }

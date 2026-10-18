@@ -109,3 +109,11 @@ export const destinations: Destination[] = [
 export const bySlug = (slug: string) => destinations.find((d) => d.slug === slug);
 
 export const formatNaira = (n: number) => `₦${n.toLocaleString("en-NG")}`;
+
+import { PH, photo } from "../lib/media";
+const photoBySlug: Record<string, string> = {
+  "palmfringe-beach-resort": PH.resort, "ogbunike-falls-lookout": PH.waterfall, "kora-terrace-kitchen": PH.rooftop,
+  "lakeside-gardens-calabar": PH.lake, "arewa-heritage-museum": PH.museum, "skyline-lounge-abuja": PH.lounge,
+  "waveform-water-park": PH.waterpark, "harbour-view-boat-club": PH.boat, "obudu-ridge-camp": PH.camp, "marina-bean-cafe": PH.cafe,
+};
+export const destPhoto = (slug: string, w = 900) => photo(photoBySlug[slug] ?? PH.beach, w);

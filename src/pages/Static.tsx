@@ -10,8 +10,8 @@ interface Doc {
 
 const docs: Record<string, Doc> = {
   about: {
-    title: "About Roamly",
-    intro: "Roamly helps people find places worth visiting and gives them reasons to go.",
+    title: "About Outsider",
+    intro: "Outsider helps people find places worth visiting and gives them reasons to go.",
     sections: [
       { h: "What we're building", p: ["A map and community for resorts, restaurants, beaches, attractions and hidden gems, starting in Nigeria.", "Visitors get honest information and rewards for exploring. Businesses get tools to be found, to talk to customers and to measure what works."] },
       { h: "How we think about it", p: ["Discover, experience, connect, reward and grow. Every feature should support at least one of these."] },
@@ -19,38 +19,38 @@ const docs: Record<string, Doc> = {
   },
   terms: {
     title: "Terms of service",
-    intro: "These terms will govern your use of Roamly.",
+    intro: "These terms will govern your use of Outsider.",
     legal: true,
     sections: [
       { h: "Accounts", p: ["You must provide accurate information and keep your login secure. You are responsible for activity on your account."] },
-      { h: "Content", p: ["You keep ownership of what you post. You give Roamly permission to display it on the platform. Reviews must reflect real experiences, and paid or incentivised content must be disclosed."] },
+      { h: "Content", p: ["You keep ownership of what you post. You give Outsider permission to display it on the platform. Reviews must reflect real experiences, and paid or incentivised content must be disclosed."] },
       { h: "Businesses", p: ["Businesses must own or be authorised to represent a listing, keep information accurate and honour offers they publish."] },
     ],
   },
   privacy: {
     title: "Privacy policy",
-    intro: "How Roamly collects, uses and protects personal data, including under the Nigeria Data Protection Act.",
+    intro: "How Outsider collects, uses and protects personal data, including under the Nigeria Data Protection Act.",
     legal: true,
     sections: [
-      { h: "Location", p: ["Roamly uses your device location only when you ask it to find nearby places or check in. We do not publish your live location or movements, and you control what appears on your public profile."] },
+      { h: "Location", p: ["Outsider uses your device location only when you ask it to find nearby places or check in. We do not publish your live location or movements, and you control what appears on your public profile."] },
       { h: "What we collect", p: ["Account details, content you post, messages you send, and activity needed to run rewards and prevent fraud."] },
       { h: "Your choices", p: ["You will be able to export your data, change privacy settings and delete your account, subject to records we must legally keep."] },
     ],
   },
   "token-terms": {
-    title: "Roamly Token terms",
-    intro: "What Roamly Tokens are and what they are not.",
+    title: "Outsider Token terms",
+    intro: "What Outsider Tokens are and what they are not.",
     legal: true,
     sections: [
       { h: "Promotional rewards", p: ["Tokens are an internal promotional reward. They are not money, are not a cryptocurrency, cannot be withdrawn or transferred, and have no guaranteed cash value."] },
-      { h: "Earning", p: ["Tokens are awarded for verified visits and approved activity under rules Roamly publishes. Rules and amounts can change for future activity but will not retroactively change rewards already earned."] },
+      { h: "Earning", p: ["Tokens are awarded for verified visits and approved activity under rules Outsider publishes. Rules and amounts can change for future activity but will not retroactively change rewards already earned."] },
       { h: "Reversals", p: ["Tokens obtained through fraud, error or manipulation can be reversed, and every reversal is recorded in your history."] },
       { h: "Prize draws", p: ["Randomised prize draws are not available. If they are ever introduced, separate rules will apply."] },
     ],
   },
   guidelines: {
     title: "Community guidelines",
-    intro: "Roamly works when people trust what they read.",
+    intro: "Outsider works when people trust what they read.",
     sections: [
       { h: "Be honest", p: ["Review places you've actually visited. Don't buy, trade or fake reviews, likes or followers."] },
       { h: "Be respectful", p: ["No harassment, hate, impersonation or spam. You can block and report accounts and content."] },
@@ -80,7 +80,7 @@ export default function Static({ id }: { id: keyof typeof docs }) {
           </section>
         ))}
       </div>
-      <p className="mt-12 text-sm text-muted">Questions? <Link to="/about" className="font-semibold text-accent-text hover:underline">About Roamly</Link></p>
+      <p className="mt-12 text-sm text-muted">Questions? <Link to="/about" className="font-semibold text-accent-text hover:underline">About Outsider</Link></p>
     </div>
   );
 }
