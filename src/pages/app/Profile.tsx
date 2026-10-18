@@ -77,7 +77,7 @@ export default function Profile() {
         <p className="mt-3 text-sm">{stats.map(([n, l], i) => <span key={l}>{i > 0 && <span className="text-muted"> · </span>}<b>{Number(n).toLocaleString()}</b> <span className="text-muted">{l}</span></span>)}</p>
         {p.bio && <p className="mt-2 max-w-lg">{p.bio}</p>}
 
-        <div className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2">
+        <div className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2 sm:max-w-xl">
           {isMe ? <>
             <button onClick={() => setNewH(true)} className="flex items-center justify-center gap-2 rounded-xl bg-accent py-2.5 font-bold text-accent-ink"><Plus className="size-5" />Add highlight</button>
             <Link to="/settings" className="flex items-center justify-center gap-2 rounded-xl bg-surface py-2.5 font-bold"><Pencil className="size-4" />Edit profile</Link>
