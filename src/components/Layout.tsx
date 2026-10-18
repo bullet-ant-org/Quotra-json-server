@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { Menu, Moon, Sun, X } from "lucide-react";
+import { Coins, Compass, Home, MapPinned, Menu, Moon, Sun, Users, X } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { Logo } from "./Logo";
 import { useEffect } from "react";
@@ -61,14 +61,47 @@ function Header() {
       {open && (
         <nav id="mobile-nav" className="border-t border-line bg-bg px-4 py-3 lg:hidden" aria-label="Mobile">
           <ul className="grid gap-1">
-            {nav.map((n) => (
-              <li key={n.to}><NavLink to={n.to} className={(s) => `block ${link(s)} text-base`}>{n.label}</NavLink></li>
-            ))}
+            <li><NavLink to="/for-business" className={(s) => `block ${link(s)} text-base`}>For business</NavLink></li>
+            <li><NavLink to="/about" className={(s) => `block ${link(s)} text-base`}>About Roamly</NavLink></li>
             <li><NavLink to="/login" className={(s) => `block ${link(s)} text-base`}>Log in</NavLink></li>
           </ul>
         </nav>
       )}
     </header>
+  );
+}
+
+
+const dockItems = [
+  { to: "/", label: "Home", icon: Home, end: true },
+  { to: "/explore", label: "Explore", icon: Compass },
+  { to: "/map", label: "Map", icon: MapPinned, primary: true },
+  { to: "/community", label: "Community", icon: Users },
+  { to: "/rewards", label: "Rewards", icon: Coins },
+];
+
+function Dock() {
+  return (
+    <nav aria-label="Primary" className="fixed inset-x-3 bottom-3 z-50 lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <ul className="mx-auto flex max-w-md items-end justify-between rounded-[1.75rem] border border-line bg-bg/85 px-2 py-1.5 shadow-2xl backdrop-blur-xl">
+        {dockItems.map((i) => (
+          <li key={i.to} className="flex-1">
+            <NavLink
+              to={i.to}
+              end={i.end}
+              className={({ isActive }) =>
+                i.primary
+                  ? "mx-auto -mt-6 grid size-14 place-items-center rounded-full bg-accent text-accent-ink shadow-lg ring-4 ring-bg"
+                  : `flex flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[11px] font-semibold ${isActive ? "text-accent-text" : "text-muted"}`
+              }
+            >
+              <i.icon className={i.primary ? "size-6" : "size-5"} aria-hidden="true" />
+              {i.primary ? <span className="sr-only">{i.label}</span> : i.label}
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 
@@ -81,7 +114,7 @@ const footerCols = [
 
 function Footer() {
   return (
-    <footer className="mt-24 border-t border-line bg-surface">
+    <footer className="mt-16 border-t border-line bg-surface">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_repeat(4,1fr)]">
         <div className="space-y-3">
           <Logo />
@@ -111,7 +144,8 @@ export function Layout() {
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-ink">Skip to content</a>
       <Header />
       <main id="main"><Outlet /></main>
-      <Footer />
+      <div className="pb-dock"><Footer /></div>
+      <Dock />
     </>
   );
 }

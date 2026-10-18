@@ -34,12 +34,12 @@ export default function Explore() {
   }, [q, cat, verified, tokens, minRating]);
 
   const chip = (on: boolean) =>
-    `rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${on ? "border-accent bg-accent text-accent-ink" : "border-line hover:border-accent"}`;
+    `shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors ${on ? "border-accent bg-accent text-accent-ink" : "border-line hover:border-accent"}`;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-      <h1 className="text-4xl font-extrabold sm:text-5xl">Explore places</h1>
-      <p className="mt-2 text-muted">Showing sample listings. Search matches names, towns, facilities and descriptions.</p>
+      <h1 className="text-4xl font-extrabold sm:text-5xl">What sounds good?</h1>
+      <p className="mt-2 text-muted">Sample listings for now. Search names, towns and facilities.</p>
 
       <form role="search" onSubmit={(e) => e.preventDefault()} className="mt-6 flex max-w-2xl items-center gap-2 rounded-full border border-line bg-bg px-5 focus-within:border-accent">
         <Search className="size-5 text-muted" aria-hidden="true" />
@@ -47,7 +47,7 @@ export default function Explore() {
         <input id="q" value={q} onChange={(e) => set("q", e.target.value || null)} placeholder="Search by name, town or facility" className="flex-1 bg-transparent py-3 outline-none placeholder:text-muted" />
       </form>
 
-      <div className="mt-5 flex flex-wrap gap-2" role="group" aria-label="Filters">
+      <div className="no-scrollbar -mx-4 mt-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap" role="group" aria-label="Filters">
         <button className={chip(!cat)} onClick={() => set("category", null)} aria-pressed={!cat}>All</button>
         {categories.map((c) => (
           <button key={c.id} className={chip(cat === c.id)} onClick={() => set("category", cat === c.id ? null : c.id)} aria-pressed={cat === c.id}>{c.name}</button>

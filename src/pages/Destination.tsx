@@ -29,8 +29,8 @@ export default function Destination() {
   };
 
   return (
-    <article className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <div className="overflow-hidden rounded-[1.75rem]"><CoverArt hue={d.hue} category={d.category} className="h-64 w-full sm:h-96" /></div>
+    <article className="mx-auto max-w-7xl px-4 pb-28 pt-0 sm:px-6 sm:pt-8 lg:pb-8">
+      <div className="-mx-4 overflow-hidden sm:mx-0 sm:rounded-[1.75rem]"><CoverArt hue={d.hue} category={d.category} className="h-72 w-full sm:h-96" /></div>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-10">
@@ -103,6 +103,10 @@ export default function Destination() {
           <ul className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{similar.map((s) => <li key={s.slug}><DestinationCard d={s} /></li>)}</ul>
         </section>
       )}
+      <div className="fixed inset-x-3 bottom-24 z-40 flex gap-2 lg:hidden">
+        <a href={dir} target="_blank" rel="noopener noreferrer" className="flex flex-1 items-center justify-center gap-2 rounded-full bg-accent py-3.5 font-bold text-accent-ink shadow-xl"><Navigation className="size-4" aria-hidden="true" />Directions</a>
+        <Link to={`/register?next=${encodeURIComponent(`/destinations/${d.slug}`)}`} className="flex flex-1 items-center justify-center gap-2 rounded-full bg-ink py-3.5 font-bold text-bg shadow-xl"><Coins className="size-4" aria-hidden="true" />Check in +{d.checkInTokens}</Link>
+      </div>
     </article>
   );
 }

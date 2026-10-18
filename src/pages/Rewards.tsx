@@ -15,7 +15,7 @@ export default function Rewards() {
   const offers = destinations.filter((d) => d.tokenOffer);
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-      <h1 className="max-w-3xl text-4xl font-extrabold sm:text-6xl">Get rewarded for getting out.</h1>
+      <h1 className="max-w-3xl text-4xl font-extrabold sm:text-6xl">Your weekends could pay you back.</h1>
       <p className="mt-4 max-w-2xl text-lg text-muted">Roamly Tokens are promotional rewards for real visits and useful contributions. You can spend them on offers published by participating businesses.</p>
       <div className="mt-6 flex gap-3">
         <Link to="/register" className="rounded-full bg-accent px-6 py-3 font-bold text-accent-ink">Start earning</Link>

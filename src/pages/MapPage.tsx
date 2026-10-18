@@ -91,7 +91,7 @@ export default function MapPage() {
           </div>
         )}
         {sel && (
-          <div className="absolute inset-x-3 bottom-20 rounded-2xl border border-line bg-bg p-4 shadow-xl sm:left-4 sm:right-auto sm:w-96 lg:bottom-4">
+          <div className="absolute inset-x-3 bottom-44 rounded-2xl border border-line bg-bg p-4 shadow-xl sm:left-4 sm:right-auto sm:w-96 lg:bottom-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-display text-lg font-bold">{sel.name}</p>
@@ -105,7 +105,7 @@ export default function MapPage() {
         <p className="absolute bottom-1 left-2 hidden text-[10px] text-ink/70 lg:block">Map data © OpenStreetMap contributors</p>
       </div>
 
-      <div className="fixed inset-x-0 bottom-4 z-30 flex justify-center lg:hidden">
+      <div className="fixed inset-x-0 bottom-28 z-30 flex justify-center lg:hidden">
         <button onClick={() => setView(view === "map" ? "list" : "map")} className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-bold text-bg shadow-xl">
           {view === "map" ? <><List className="size-4" /> Show list</> : <><MapIcon className="size-4" /> Show map</>}
         </button>

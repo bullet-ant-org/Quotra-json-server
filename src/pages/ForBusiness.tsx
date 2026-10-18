@@ -16,7 +16,7 @@ export default function ForBusiness() {
   return (
     <>
       <section className="mx-auto max-w-7xl px-4 pb-16 pt-14 sm:px-6">
-        <h1 className="max-w-4xl text-5xl font-extrabold leading-[1.04] sm:text-7xl">Get found by people who are ready to go.</h1>
+        <h1 className="max-w-4xl text-5xl font-extrabold leading-[1.04] sm:text-7xl">Your next customers are already searching.</h1>
         <p className="mt-6 max-w-2xl text-lg text-muted">List your resort, restaurant or attraction on Roamly for free. Build a following, answer questions and bring visitors in with token offers.</p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link to="/register?type=business" className="rounded-full bg-accent px-7 py-3.5 font-bold text-accent-ink">List your place</Link>
