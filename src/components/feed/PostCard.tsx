@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CalendarCheck, Heart, MapPin, MessageCircle, MoreHorizontal, Repeat2, Send, Share2, Ticket, Users } from "lucide-react";
+import { CalendarCheck, Globe, Heart, ThumbsUp, MapPin, MessageCircle, MoreHorizontal, Repeat2, Send, Share2, Ticket, Users } from "lucide-react";
 import { actions, ago, person, useStore, type Post } from "../../lib/store";
 import { bySlug } from "../../fixtures/destinations";
 import { MediaGrid } from "./MediaGrid";
@@ -26,13 +26,13 @@ export function PostCard({ post }: { post: Post }) {
   const profileLink = a.id === s.me ? "/profile" : `/u/${a.username}`;
 
   return (
-    <article className="relative overflow-hidden rounded-3xl border border-line bg-bg">
+    <article className="relative -mx-4 overflow-hidden border-y border-line bg-bg sm:mx-0 sm:rounded-2xl sm:border">
       <header className="flex items-start gap-3 p-4 pb-3">
         <Link to={profileLink}><img src={a.avatar} alt="" className="size-11 rounded-full object-cover" /></Link>
         <div className="min-w-0 flex-1 leading-tight">
           <p className="truncate"><Link to={profileLink} className="font-bold hover:underline">{a.name}</Link>{post.tags.length > 0 && <span className="text-muted"> with {post.tags.map((t) => person(s, t).name.split(" ")[0]).join(", ")}</span>}</p>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm text-muted">
-            <span>@{a.username}</span><span aria-hidden="true">·</span><span>{ago(post.at)}</span>
+            <span>{ago(post.at)}</span><span aria-hidden="true">·</span><Globe className="size-3.5" aria-label="Public" />
             {place && <><span aria-hidden="true">·</span><Link to={`/destinations/${place.slug}`} className="inline-flex items-center gap-0.5 font-semibold text-accent-text hover:underline"><MapPin className="size-3.5" />{place.name}</Link></>}
           </p>
         </div>
@@ -63,20 +63,20 @@ export function PostCard({ post }: { post: Post }) {
       )}
 
       <div className="flex items-center justify-between px-4 pt-3 text-sm text-muted">
-        <span>{post.likes.length > 0 && <><Heart className="mr-1 inline size-4 fill-accent text-accent" />{post.likes.length}</>}</span>
-        <span className="space-x-3"><button onClick={() => setShowC(!showC)} className="hover:underline">{post.comments.length} comments</button><span>{post.reposts} reposts</span></span>
+        <span className="flex items-center gap-1.5">{post.likes.length > 0 && <><span className="flex -space-x-1"><span className="grid size-5 place-items-center rounded-full bg-accent ring-2 ring-bg"><ThumbsUp className="size-3 fill-white text-white" /></span><span className="grid size-5 place-items-center rounded-full bg-red-500 ring-2 ring-bg"><Heart className="size-3 fill-white text-white" /></span></span>{post.likes.length}</>}</span>
+        <span className="space-x-3"><button onClick={() => setShowC(!showC)} className="hover:underline">{post.comments.length} comments</button><span>{post.reposts} shares</span></span>
       </div>
 
       <div className="mx-2 mt-2 flex border-t border-line py-1">
-        <button onClick={() => actions.toggleLike(post.id)} className={`${act} ${liked ? "!text-accent-text" : ""}`} aria-pressed={liked}><Heart className={`size-5 ${liked ? "fill-accent text-accent" : ""}`} />Like</button>
+        <button onClick={() => actions.toggleLike(post.id)} className={`${act} ${liked ? "!text-accent-text" : ""}`} aria-pressed={liked}><ThumbsUp className={`size-5 ${liked ? "fill-accent text-accent" : ""}`} />Like</button>
         <button onClick={() => setShowC(!showC)} className={act}><MessageCircle className="size-5" />Comment</button>
-        <button onClick={() => { actions.repost(post.id); flash("Reposted to your profile"); }} className={act}><Repeat2 className="size-5" />Repost</button>
-        <button onClick={async () => { try { await navigator.share?.({ text: post.text, url: location.href }); } catch { /* cancelled */ } }} className={`${act} hidden sm:flex`}><Share2 className="size-5" />Share</button>
+        <button onClick={() => { actions.repost(post.id); flash("Reposted to your profile"); }} className={act}><Repeat2 className="size-5" />Share</button>
+        <button onClick={async () => { try { await navigator.share?.({ text: post.text, url: location.href }); } catch { /* cancelled */ } }} className={`${act} hidden sm:flex`}><Share2 className="size-5" />Send</button>
       </div>
 
       {place && (
-        <div className="mx-4 mb-3 grid grid-cols-2 gap-2">
-          <button onClick={() => nav(`/destinations/${place.slug}`)} className="flex items-center justify-center gap-2 rounded-xl bg-ink py-2.5 text-sm font-bold text-bg"><Ticket className="size-4" />Book a visit</button>
+        <div className="mx-4 mb-3 grid grid-cols-2 gap-2 border-t border-line pt-3">
+          <button onClick={() => nav(`/destinations/${place.slug}`)} className="flex items-center justify-center gap-2 rounded-xl bg-accent py-2.5 text-sm font-bold text-accent-ink"><Ticket className="size-4" />Book a visit</button>
           <button onClick={() => { actions.requestVisit(`Hey! I'd like to come over. (from @${person(s, s.me).username})`, new Date().toISOString().slice(0, 10), 1); nav("/messages/c2"); }} className="flex items-center justify-center gap-2 rounded-xl bg-surface py-2.5 text-sm font-bold"><CalendarCheck className="size-4" />Message place</button>
         </div>
       )}
