@@ -21,16 +21,16 @@ export function MoodPicker() {
     <div>
       <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap" role="group" aria-label="Pick a mood">
         {moods.map((m) => (
-          <button key={m.id} onClick={() => setMood(m.id)} aria-pressed={mood === m.id} className={`relative shrink-0 rounded-full px-5 py-3 text-base font-bold transition-colors ${mood === m.id ? "text-accent-ink" : "bg-surface hover:bg-surface-2"}`}>
+          <button key={m.id} onClick={() => setMood(m.id)} aria-pressed={mood === m.id} className={`relative shrink-0 rounded-full px-4 py-2.5 text-sm font-bold sm:px-5 sm:py-3 sm:text-base transition-colors ${mood === m.id ? "text-accent-ink" : "bg-surface hover:bg-surface-2"}`}>
             {mood === m.id && <motion.span layoutId="mood-pill" className="absolute inset-0 rounded-full bg-accent" transition={{ type: "spring", stiffness: 420, damping: 32 }} />}
             <span className="relative">{m.label}</span>
           </button>
         ))}
       </div>
-      <ul className="no-scrollbar -mx-4 mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-3" aria-live="polite">
+      <ul className="mt-6 grid gap-3 pb-4 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3" aria-live="polite">
         <AnimatePresence mode="popLayout">
           {list.slice(0, 3).map((d) => (
-            <motion.li key={`${mood}-${d.slug}`} layout initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.94 }} transition={{ type: "spring", stiffness: 320, damping: 30 }} className="w-[78vw] max-w-80 shrink-0 snap-center sm:w-auto sm:max-w-none">
+            <motion.li key={`${mood}-${d.slug}`} layout initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.94 }} transition={{ type: "spring", stiffness: 320, damping: 30 }}>
               <DestinationCard d={d} />
             </motion.li>
           ))}

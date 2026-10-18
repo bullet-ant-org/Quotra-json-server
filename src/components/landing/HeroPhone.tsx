@@ -23,10 +23,10 @@ export function HeroPhone() {
   const d = bySlug(cur.slug)!;
 
   return (
-    <div className="relative mx-auto w-[17.5rem] text-ink sm:w-[19rem]" aria-hidden="true">
+    <div className="relative mx-auto w-[15.5rem] text-ink sm:w-[19rem]" aria-hidden="true">
       <div className="relative overflow-hidden rounded-[2.6rem] border-[7px] border-ink bg-bg shadow-2xl">
         <div className="absolute left-1/2 top-2 z-20 h-5 w-20 -translate-x-1/2 rounded-full bg-ink" />
-        <div className="relative h-[27rem] bg-surface">
+        <div className="relative h-[23rem] bg-surface sm:h-[27rem]">
           <svg viewBox="0 0 100 130" className="absolute inset-0 size-full" preserveAspectRatio="xMidYMid slice">
             <path d="M0 96 Q25 84 50 98 T100 90 V130 H0Z" fill="var(--c-accent)" opacity=".16" />
             <ellipse cx="18" cy="22" rx="16" ry="10" fill="var(--c-accent)" opacity=".1" />
@@ -70,10 +70,10 @@ export function HeroPhone() {
         </div>
       </div>
 
-      <motion.div key={`t${i}`} initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", delay: 0.25 }} className="absolute -left-6 top-24 flex items-center gap-1.5 rounded-full bg-bg px-3 py-1.5 text-xs font-bold text-ink shadow-lg">
+      <motion.div key={`t${i}`} initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", delay: 0.25 }} className="absolute -left-10 top-20 sm:-left-6 sm:top-24 flex items-center gap-1.5 rounded-full bg-bg px-3 py-1.5 text-xs font-bold text-ink shadow-lg">
         <Coins className="size-4 text-accent" />+{d.checkInTokens} tokens
       </motion.div>
-      <div className="absolute -right-5 top-44 rounded-full bg-bg px-3 py-1.5 text-xs font-bold text-ink shadow-lg">Open now</div>
+      <div className="absolute -right-10 top-40 sm:-right-5 sm:top-44 rounded-full bg-bg px-3 py-1.5 text-xs font-bold text-ink shadow-lg">Open now</div>
     </div>
   );
 }

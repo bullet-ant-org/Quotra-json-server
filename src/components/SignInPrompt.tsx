@@ -1,9 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import { Lock } from "lucide-react";
+import { useAuth } from "../lib/auth/AuthContext";
 
 // Guest gate: actions that need an account route to sign in and come back.
 export function SignInPrompt({ action, className = "" }: { action: string; className?: string }) {
   const { pathname } = useLocation();
+  const { user } = useAuth();
+  if (user) return null;
   const next = encodeURIComponent(pathname);
   return (
     <div className={`flex flex-wrap items-center gap-3 rounded-xl bg-accent-soft p-4 text-sm ${className}`}>

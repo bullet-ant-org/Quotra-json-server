@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "dev:demo": "VITE_DEMO_MODE=true vite",
+    "build:demo": "tsc -b && VITE_DEMO_MODE=true vite build"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",

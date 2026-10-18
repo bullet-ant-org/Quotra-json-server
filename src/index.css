@@ -118,3 +118,5 @@ p { text-wrap: pretty; }
 @media (min-width: 1024px) { .pb-dock { padding-bottom: 0; } }
 
 html, body { overflow-x: clip; }
+
+input:not([type="checkbox"]):not([type="radio"]):focus-visible, select:focus-visible { outline: none; }

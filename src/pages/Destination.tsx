@@ -9,6 +9,7 @@ import { SignInPrompt } from "../components/SignInPrompt";
 import { DestinationCard } from "../components/DestinationCard";
 import { useTitle } from "../lib/useTitle";
 import NotFound from "./NotFound";
+import { CheckInButton } from "../components/CheckInButton";
 
 export default function Destination() {
   const { slug = "" } = useParams();
@@ -92,7 +93,7 @@ export default function Destination() {
             <p className="flex items-center gap-2 font-display text-lg font-bold"><Coins className="size-5 text-accent-text" aria-hidden="true" />Roamly Tokens</p>
             <p className="text-sm">Check in here to earn <strong>{d.checkInTokens} tokens</strong>. You'll need to be at the place when you check in.</p>
             {d.tokenOffer && <p className="rounded-lg bg-bg p-3 text-sm font-semibold">{d.tokenOffer}</p>}
-            <Link to={`/register?next=${encodeURIComponent(`/destinations/${d.slug}`)}`} className="block rounded-full bg-ink px-5 py-2.5 text-center text-sm font-bold text-bg">Sign up to check in</Link>
+            <CheckInButton d={d} className="flex w-full items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-bg" />
           </div>
         </aside>
       </div>
@@ -105,7 +106,7 @@ export default function Destination() {
       )}
       <div className="fixed inset-x-3 bottom-24 z-40 flex gap-2 lg:hidden">
         <a href={dir} target="_blank" rel="noopener noreferrer" className="flex flex-1 items-center justify-center gap-2 rounded-full bg-accent py-3.5 font-bold text-accent-ink shadow-xl"><Navigation className="size-4" aria-hidden="true" />Directions</a>
-        <Link to={`/register?next=${encodeURIComponent(`/destinations/${d.slug}`)}`} className="flex flex-1 items-center justify-center gap-2 rounded-full bg-ink py-3.5 font-bold text-bg shadow-xl"><Coins className="size-4" aria-hidden="true" />Check in +{d.checkInTokens}</Link>
+        <CheckInButton d={d} className="flex flex-1 items-center justify-center gap-2 rounded-full bg-ink py-3.5 font-bold text-bg shadow-xl" />
       </div>
     </article>
   );

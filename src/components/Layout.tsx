@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { Coins, Compass, Home, MapPinned, Menu, Moon, Sun, Users, X } from "lucide-react";
+import { Bell, Coins, Compass, Home, MapPinned, Menu, MessageCircle, Moon, Sun, User as UserIcon, Users, X } from "lucide-react";
+import { useAuth } from "../lib/auth/AuthContext";
+import { balance, conversations, notifications } from "../fixtures/account";
+import { Avatar } from "./Avatar";
 import { useTheme } from "../lib/theme";
 import { Logo } from "./Logo";
 import { useEffect } from "react";
@@ -27,7 +30,24 @@ function ThemeToggle() {
   );
 }
 
+function SignedInActions() {
+  const { user } = useAuth();
+  const unreadMsgs = conversations.reduce((n, c) => n + c.unread, 0);
+  const unreadNotes = notifications.filter((n) => n.unread).length;
+  const icon = "relative grid size-10 place-items-center rounded-full hover:bg-surface";
+  const dot = (n: number) => n > 0 && <span className="absolute right-1 top-1 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-ink">{n}</span>;
+  return (
+    <>
+      <Link to="/wallet" className="hidden items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1.5 text-sm font-bold text-accent-text sm:inline-flex" aria-label={`Wallet, ${balance} tokens`}><Coins className="size-4" aria-hidden="true" />{balance}</Link>
+      <Link to="/messages" className={icon} aria-label={`Messages, ${unreadMsgs} unread`}><MessageCircle className="size-5" aria-hidden="true" />{dot(unreadMsgs)}</Link>
+      <Link to="/notifications" className={icon} aria-label={`Notifications, ${unreadNotes} unread`}><Bell className="size-5" aria-hidden="true" />{dot(unreadNotes)}</Link>
+      <Link to="/profile" className="ml-1 hidden lg:block" aria-label="Your profile"><Avatar name={user!.firstName} className="size-9 text-sm" /></Link>
+    </>
+  );
+}
+
 function Header() {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   useEffect(() => setOpen(false), [pathname]);
@@ -38,14 +58,18 @@ function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
-        <Link to="/" aria-label="Roamly home"><Logo /></Link>
+        <Link to={user ? "/home" : "/"} aria-label="Roamly home"><Logo /></Link>
         <nav className="ml-6 hidden items-center gap-1 lg:flex" aria-label="Main">
           {nav.map((n) => <NavLink key={n.to} to={n.to} className={link}>{n.label}</NavLink>)}
         </nav>
         <div className="ml-auto flex items-center gap-1">
           <ThemeToggle />
-          <Link to="/login" className="hidden rounded-full px-4 py-2 text-sm font-semibold hover:bg-surface sm:block">Log in</Link>
-          <Link to="/register" className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-accent-ink hover:opacity-90">Sign up</Link>
+          {user ? <SignedInActions /> : (
+            <>
+              <Link to="/login" className="hidden rounded-full px-4 py-2 text-sm font-semibold hover:bg-surface sm:block">Log in</Link>
+              <Link to="/register" className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-accent-ink hover:opacity-90">Sign up</Link>
+            </>
+          )}
           <button
             type="button"
             className="grid size-10 place-items-center rounded-full hover:bg-surface lg:hidden"
@@ -63,7 +87,8 @@ function Header() {
           <ul className="grid gap-1">
             <li><NavLink to="/for-business" className={(s) => `block ${link(s)} text-base`}>For business</NavLink></li>
             <li><NavLink to="/about" className={(s) => `block ${link(s)} text-base`}>About Roamly</NavLink></li>
-            <li><NavLink to="/login" className={(s) => `block ${link(s)} text-base`}>Log in</NavLink></li>
+            <li><NavLink to="/community" className={(s) => `block ${link(s)} text-base`}>Community</NavLink></li>
+            {user ? <li><NavLink to="/settings" className={(s) => `block ${link(s)} text-base`}>Settings</NavLink></li> : <li><NavLink to="/login" className={(s) => `block ${link(s)} text-base`}>Log in</NavLink></li>}
           </ul>
         </nav>
       )}
@@ -80,11 +105,21 @@ const dockItems = [
   { to: "/rewards", label: "Rewards", icon: Coins },
 ];
 
+const signedInDock = [
+  { to: "/home", label: "Home", icon: Home, end: true },
+  { to: "/explore", label: "Explore", icon: Compass },
+  { to: "/map", label: "Map", icon: MapPinned, primary: true },
+  { to: "/wallet", label: "Rewards", icon: Coins },
+  { to: "/profile", label: "Profile", icon: UserIcon },
+];
+
 function Dock() {
+  const { user } = useAuth();
+  const items = user ? signedInDock : dockItems;
   return (
     <nav aria-label="Primary" className="fixed inset-x-3 bottom-3 z-50 lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
       <ul className="mx-auto flex max-w-md items-end justify-between rounded-[1.75rem] border border-line bg-bg/85 px-2 py-1.5 shadow-2xl backdrop-blur-xl">
-        {dockItems.map((i) => (
+        {items.map((i) => (
           <li key={i.to} className="flex-1">
             <NavLink
               to={i.to}
@@ -137,6 +172,7 @@ function Footer() {
 }
 
 export function Layout() {
+  const { user } = useAuth();
   const { pathname } = useLocation();
   useEffect(() => window.scrollTo(0, 0), [pathname]);
   return (
@@ -144,36 +180,9 @@ export function Layout() {
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-ink">Skip to content</a>
       <Header />
       <main id="main"><Outlet /></main>
-      <div className="pb-dock"><Footer /></div>
+      {user ? <div className="pb-dock" /> : <div className="pb-dock"><Footer /></div>}
       <Dock />
     </>
   );
 }
 
-// Auth screens get a bare layout without header/footer clutter.
-export function AuthLayout() {
-  const { theme, toggle } = useTheme();
-  return (
-    <div className="grid min-h-dvh lg:grid-cols-[1fr_1.1fr]">
-      <div className="flex flex-col px-5 py-6 sm:px-10">
-        <div className="flex items-center justify-between">
-          <Link to="/" aria-label="Roamly home"><Logo /></Link>
-          <button type="button" onClick={toggle} className="grid size-10 place-items-center rounded-full hover:bg-surface" aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
-            {theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
-          </button>
-        </div>
-        <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-10"><Outlet /></div>
-      </div>
-      <aside className="relative hidden overflow-hidden bg-accent text-accent-ink lg:block" aria-hidden="true">
-        <svg viewBox="0 0 400 600" className="absolute inset-0 size-full opacity-25" preserveAspectRatio="xMidYMid slice">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <path key={i} d={`M-20 ${40 + i * 52} Q100 ${i * 52 - 10} 200 ${50 + i * 52} T420 ${30 + i * 52}`} fill="none" stroke="currentColor" strokeWidth="1.5" />
-          ))}
-        </svg>
-        <div className="relative flex h-full flex-col justify-end p-14">
-          <p className="font-display text-5xl font-extrabold leading-[1.05]">Your next favourite place is closer than you think.</p>
-        </div>
-      </aside>
-    </div>
-  );
-}

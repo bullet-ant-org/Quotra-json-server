@@ -6,17 +6,20 @@ export class ApiNotConfigured extends Error {
   }
 }
 
-const base = import.meta.env.VITE_API_URL as string | undefined;
+export const apiBase = import.meta.env.VITE_API_URL as string | undefined;
 
-export async function post<T>(path: string, body: unknown): Promise<T> {
-  if (!base) throw new ApiNotConfigured();
-  const res = await fetch(`${base}/v1${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  if (!apiBase) throw new ApiNotConfigured();
+  const res = await fetch(`${apiBase}/v1${path}`, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
     credentials: "include",
-    body: JSON.stringify(body),
+    body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as { message?: string }).message ?? "Something went wrong. Try again.");
   return data as T;
 }
+
+export const post = <T>(path: string, body: unknown) => request<T>("POST", path, body);
+export const get = <T>(path: string) => request<T>("GET", path);

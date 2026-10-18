@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useAuth } from "../lib/auth/AuthContext";
 import { ArrowRight, Building2, Navigation } from "lucide-react";
 import { HeroPhone } from "../components/landing/HeroPhone";
 import { ProblemFlip } from "../components/landing/ProblemFlip";
@@ -21,12 +22,14 @@ function Marquee() {
 
 export default function Landing() {
   useTitle();
+  const { user } = useAuth();
+  if (user) return <Navigate to="/home" replace />;
   return (
     <>
       <section className="relative overflow-hidden rounded-b-[2.5rem] bg-hero text-hero-ink lg:rounded-b-[4rem]">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 pt-10 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pt-20">
           <div className="space-y-6 lg:pb-24">
-            <h1 className="text-[2.7rem] font-extrabold leading-[0.98] sm:text-6xl lg:text-7xl">
+            <h1 className="text-[2.6rem] font-extrabold leading-[0.98] sm:text-6xl lg:text-7xl">
               Somewhere good is 15 minutes away. You just don't know it yet.
             </h1>
             <p className="max-w-md text-lg opacity-90 sm:text-xl">
@@ -38,32 +41,32 @@ export default function Landing() {
             </div>
             <p className="text-sm opacity-80">Free to use. No account needed to explore.</p>
           </div>
-          <div className="-mb-24 pt-2 lg:-mb-16"><HeroPhone /></div>
+          <div className="pt-2 lg:-mb-16"><HeroPhone /></div>
         </div>
-        <div className="relative z-10 pb-6 pt-32 lg:pt-20"><Marquee /></div>
+        <div className="relative z-10 pb-6 pt-8 lg:pt-20"><Marquee /></div>
       </section>
 
-      <section className="mx-auto mt-20 max-w-7xl px-4 sm:px-6" aria-labelledby="prob">
-        <h2 id="prob" className="max-w-3xl text-4xl font-extrabold leading-[1.02] sm:text-6xl">Planning a day out shouldn't be a group project.</h2>
+      <section className="mx-auto mt-16 max-w-7xl px-4 sm:px-6" aria-labelledby="prob">
+        <h2 id="prob" className="max-w-3xl text-[2.1rem] font-extrabold leading-[1.02] sm:text-6xl">Planning a day out shouldn't be a group project.</h2>
         <p className="mt-3 text-lg text-muted">Four ways it goes wrong. Tap a card to see the fix.</p>
         <div className="mt-8"><ProblemFlip /></div>
       </section>
 
-      <section className="mx-auto mt-24 max-w-7xl px-4 sm:px-6" aria-labelledby="mood">
-        <h2 id="mood" className="max-w-3xl text-4xl font-extrabold leading-[1.02] sm:text-6xl">Tell us the mood. We'll find the spot.</h2>
+      <section className="mx-auto mt-20 max-w-7xl sm:mt-24 px-4 sm:px-6" aria-labelledby="mood">
+        <h2 id="mood" className="max-w-3xl text-[2.1rem] font-extrabold leading-[1.02] sm:text-6xl">Tell us the mood. We'll find the spot.</h2>
         <p className="mb-8 mt-3 text-lg text-muted">Try it. Sample places for now.</p>
         <MoodPicker />
       </section>
 
-      <section className="mx-auto mt-24 max-w-7xl px-4 sm:px-6" aria-labelledby="what">
-        <h2 id="what" className="max-w-3xl text-4xl font-extrabold leading-[1.02] sm:text-6xl">Everything you need before you leave the house.</h2>
+      <section className="mx-auto mt-20 max-w-7xl sm:mt-24 px-4 sm:px-6" aria-labelledby="what">
+        <h2 id="what" className="max-w-3xl text-[2.1rem] font-extrabold leading-[1.02] sm:text-6xl">Everything you need before you leave the house.</h2>
         <div className="mt-8"><Bento /></div>
       </section>
 
-      <section className="mx-auto mt-24 max-w-7xl px-4 sm:px-6" aria-labelledby="tok">
+      <section className="mx-auto mt-20 max-w-7xl sm:mt-24 px-4 sm:px-6" aria-labelledby="tok">
         <div className="grid items-center gap-10 overflow-hidden rounded-[2rem] bg-accent p-6 text-accent-ink sm:p-12 lg:grid-cols-2">
           <div className="space-y-5">
-            <h2 id="tok" className="text-4xl font-extrabold leading-[1.02] sm:text-6xl">Go somewhere. Earn something.</h2>
+            <h2 id="tok" className="text-[2.1rem] font-extrabold leading-[1.02] sm:text-6xl">Go somewhere. Earn something.</h2>
             <p className="max-w-md text-lg opacity-95">Check in at a place and we verify you're really there. Tokens land in your wallet and pay for pool access, a free drink or a guided tour, whatever the business offers.</p>
             <Link to="/rewards" className="inline-flex items-center gap-2 rounded-full bg-bg px-6 py-3.5 font-bold text-ink active:scale-[0.98]">How tokens work <ArrowRight className="size-4" aria-hidden="true" /></Link>
             <p className="text-sm opacity-90">Tokens are promotional rewards, not cash.</p>
@@ -72,15 +75,15 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="mx-auto mt-24 max-w-7xl px-4 sm:px-6" aria-labelledby="where">
-        <h2 id="where" className="max-w-3xl text-4xl font-extrabold leading-[1.02] sm:text-6xl">Built in Nigeria, city by city.</h2>
+      <section className="mx-auto mt-20 max-w-7xl sm:mt-24 px-4 sm:px-6" aria-labelledby="where">
+        <h2 id="where" className="max-w-3xl text-[2.1rem] font-extrabold leading-[1.02] sm:text-6xl">Built in Nigeria, city by city.</h2>
         <ul className="mt-6 flex flex-wrap gap-2">
           {cities.map((c) => <li key={c} className="rounded-full bg-surface px-5 py-3 font-semibold">{c}</li>)}
           <li className="rounded-full border border-dashed border-line px-5 py-3 text-muted">More soon</li>
         </ul>
       </section>
 
-      <section className="mx-auto mt-24 max-w-7xl px-4 sm:px-6" aria-labelledby="biz">
+      <section className="mx-auto mt-20 max-w-7xl sm:mt-24 px-4 sm:px-6" aria-labelledby="biz">
         <div className="rounded-[2rem] bg-ink p-7 text-bg sm:p-12">
           <Building2 className="size-9 text-accent" aria-hidden="true" />
           <h2 id="biz" className="mt-4 max-w-2xl text-4xl font-extrabold leading-[1.02] sm:text-5xl">Own a place worth finding?</h2>
