@@ -119,7 +119,7 @@ function Dock() {
   const { user } = useAuth();
   const items = user ? signedInDock : dockItems;
   return (
-    <nav aria-label="Primary" className="fixed inset-x-3 bottom-3 z-50 lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <nav aria-label="Primary" className="fixed inset-x-3 bottom-3 z-50 lg:inset-x-auto lg:bottom-6 lg:right-6 lg:w-[26rem]" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
       <ul className="mx-auto flex max-w-md items-end justify-between rounded-[1.75rem] border border-line bg-bg/85 px-2 py-1.5 shadow-2xl backdrop-blur-xl">
         {items.map((i) => (
           <li key={i.to} className="flex-1">

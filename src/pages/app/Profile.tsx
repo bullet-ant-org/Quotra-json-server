@@ -55,13 +55,14 @@ export default function Profile() {
   const tabs = [["all", "All"], ["photos", "Photos"], ["reels", "Reels"], ["tagged", "Tagged"]] as const;
   const stats = [[isMe ? 1248 : 3410, "followers"], [isMe ? s.people.filter((x) => x.following).length : 182, "following"], [likes + (isMe ? 5300 : 21000), "likes"]] as const;
   return (
-    <div className="mx-auto max-w-4xl pb-10">
-      <div className="relative h-48 sm:h-80 sm:rounded-b-2xl sm:overflow-hidden">
+    <div className="pb-10">
+      <div className="relative h-48 sm:h-80 lg:h-[26rem]">
         <img src={banner} alt="" className="size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% to-bg" />
         {isMe && <label className="absolute bottom-4 right-4 grid size-10 cursor-pointer place-items-center rounded-full bg-surface/90 backdrop-blur" aria-label="Change cover photo"><Camera className="size-5" /><input type="file" accept="image/*" hidden /></label>}
       </div>
 
+      <div className="mx-auto max-w-6xl">
       <div className="relative -mt-16 px-4 sm:-mt-20 sm:px-6">
         <div className="flex items-end gap-4">
           <div className="relative shrink-0">
@@ -122,6 +123,7 @@ export default function Profile() {
           </ul>
         ) : <p className="py-14 text-center text-muted">Nothing here yet.</p>}
       </>}
+      </div>
       {newH && <NewHighlight mine={media.filter((m) => m.type === "image").map((m) => m.src)} onClose={() => setNewH(false)} />}
       {view && <Lightbox media={view.media} start={view.i} onClose={() => setView(null)} />}
     </div>

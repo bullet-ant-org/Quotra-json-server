@@ -115,7 +115,6 @@ p { text-wrap: pretty; }
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .pb-dock { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
-@media (min-width: 1024px) { .pb-dock { padding-bottom: 0; } }
 
 html, body { overflow-x: clip; }
 
