@@ -47,7 +47,7 @@ export const Stat = ({ label, value, sub }: { label: string; value: string | num
   <Card><p className="text-sm font-semibold text-muted">{label}</p><p className="mt-1 font-display text-3xl font-extrabold">{typeof value === "number" ? value.toLocaleString() : value}</p>{sub && <p className="mt-1 text-xs font-semibold text-accent-text">{sub}</p>}</Card>
 );
 export const Badge = ({ tone, children }: { tone: "ok" | "warn" | "bad" | "muted"; children: ReactNode }) => (
-  <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${tone === "ok" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : tone === "warn" ? "bg-accent-soft text-accent-text" : tone === "bad" ? "bg-red-500/15 text-red-600 dark:text-red-400" : "bg-surface text-muted"}`}>{children}</span>
+  <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${tone === "ok" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : tone === "warn" ? "bg-accent-soft text-accent-text" : tone === "bad" ? "bg-red-500/15 text-red-600 dark:text-red-400" : "bg-surface text-muted"}`}>{children}</span>
 );
 export const inputCls = "w-full rounded-xl border border-line bg-bg px-3.5 py-2.5 outline-none focus:border-accent";
 export const btn = "rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-accent-ink disabled:opacity-40";
