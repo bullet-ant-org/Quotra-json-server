@@ -1,0 +1,10 @@
+{
+  "name": "Roamly",
+  "short_name": "Roamly",
+  "description": "Discover places worth experiencing.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FF5A00",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
