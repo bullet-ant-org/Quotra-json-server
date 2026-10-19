@@ -1,3 +1,4 @@
+import { useScrollLock } from "../../lib/useScrollLock";
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
@@ -9,6 +10,7 @@ import { destinations, destPhoto } from "../../fixtures/destinations";
 type Panel = null | "place" | "people";
 
 function Modal({ onClose, autoPick }: { onClose: () => void; autoPick: boolean }) {
+  useScrollLock();
   const people = useStore((s) => s.people.filter((p) => p.id !== s.me));
   const me = useStore((s) => person(s, s.me));
   const [text, setText] = useState("");
@@ -125,13 +127,13 @@ export function Composer() {
   const me = useStore((s) => person(s, s.me));
   const [open, setOpen] = useState<null | "text" | "media">(null);
   return (
-    <div className="rounded-3xl border border-line bg-bg p-3 sm:p-4">
+    <div className="py-1">
       <div className="flex items-center gap-3">
         <Link to="/profile" aria-label="Your profile"><img src={me.avatar} alt="" className="size-11 rounded-full object-cover ring-2 ring-accent/30" /></Link>
-        <button onClick={() => setOpen("text")} className="flex-1 rounded-full bg-surface px-4 py-3 text-left text-muted hover:bg-surface-2">Been anywhere good, {me.name.split(" ")[0]}?</button>
+        <button onClick={() => setOpen("text")} className="min-w-0 flex-1 truncate rounded-full bg-surface px-4 py-2.5 text-left text-sm text-muted hover:bg-surface-2">Where did you go?</button>
         <button onClick={() => setOpen("media")} className="grid size-11 place-items-center rounded-full bg-accent-soft text-accent-text hover:bg-accent hover:text-accent-ink" aria-label="Add photos or video"><ImagePlus className="size-5" /></button>
       </div>
-      <div className="mt-3 hidden gap-1 border-t border-line pt-3 sm:flex">
+      <div className="mt-2 hidden gap-1 sm:flex">
         {[[ImagePlus, "Photo"], [Video, "Video"], [MapPin, "Check in"], [CalendarPlus, "Going party"]].map(([I, l]) => {
           const Icon = I as typeof ImagePlus;
           return <button key={l as string} onClick={() => setOpen("media")} className="flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-sm font-semibold text-muted hover:bg-surface"><Icon className="size-5 text-accent" />{l as string}</button>;

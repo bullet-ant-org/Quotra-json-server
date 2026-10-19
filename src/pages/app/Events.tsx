@@ -1,3 +1,4 @@
+import { useScrollLock } from "../../lib/useScrollLock";
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { CalendarDays, Coins, MapPin, Ticket, X } from "lucide-react";
@@ -6,6 +7,7 @@ import { Img } from "../../components/Img";
 import { useTitle } from "../../lib/useTitle";
 
 export function QrModal({ title, sub, code, onClose }: { title: string; sub: string; code: string; onClose: () => void }) {
+  useScrollLock();
   const [src, setSrc] = useState("");
   useEffect(() => { QRCode.toDataURL(code, { margin: 1, width: 520, color: { dark: "#242326", light: "#ffffff" } }).then(setSrc); }, [code]);
   return (

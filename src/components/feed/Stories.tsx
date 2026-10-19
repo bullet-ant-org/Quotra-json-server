@@ -1,3 +1,4 @@
+import { useScrollLock } from "../../lib/useScrollLock";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -10,6 +11,7 @@ const loadSeen = (): string[] => { try { return JSON.parse(localStorage.getItem(
 
 // Plays one author's stories, then moves on to the next author.
 function Viewer({ groups, start, onSeen, onClose }: { groups: Story[][]; start: number; onSeen: (id: string) => void; onClose: () => void }) {
+  useScrollLock();
   const [g, setG] = useState(start);
   const [i, setI] = useState(0);
   const [reply, setReply] = useState("");

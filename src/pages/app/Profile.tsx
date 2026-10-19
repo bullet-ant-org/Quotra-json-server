@@ -1,3 +1,4 @@
+import { useScrollLock } from "../../lib/useScrollLock";
 import { useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { post } from "../../lib/api";
@@ -11,6 +12,7 @@ import { Lightbox } from "../../components/feed/Lightbox";
 import { useTitle } from "../../lib/useTitle";
 
 function NewHighlight({ onClose, mine }: { onClose: () => void; mine: string[] }) {
+  useScrollLock();
   const [name, setName] = useState("");
   const [items, setItems] = useState<string[]>([]);
   const file = useRef<HTMLInputElement>(null);

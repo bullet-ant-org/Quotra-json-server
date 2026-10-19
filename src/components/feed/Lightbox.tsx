@@ -1,15 +1,17 @@
+import { useScrollLock } from "../../lib/useScrollLock";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import type { Media } from "../../lib/store";
 
 export function Lightbox({ media, start, onClose }: { media: Media[]; start: number; onClose: () => void }) {
+  useScrollLock();
   const [i, setI] = useState(start);
   const go = (n: number) => setI((x) => (x + n + media.length) % media.length);
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); if (e.key === "ArrowRight") go(1); if (e.key === "ArrowLeft") go(-1); };
-    window.addEventListener("keydown", k); document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", k); document.body.style.overflow = ""; };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
   });
   const m = media[i];
   let x0 = 0;

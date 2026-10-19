@@ -6,11 +6,21 @@ import { PostCard } from "../../components/feed/PostCard";
 import { actions, passSlots, person, useStore } from "../../lib/store";
 import { bySlug, destPhoto } from "../../fixtures/destinations";
 import { useTitle } from "../../lib/useTitle";
+import { useEffect, useState } from "react";
+import { useAuth } from "../../lib/auth/AuthContext";
+import { loadFor } from "../../lib/remote";
 
 const side = [[HomeIcon, "Feed", "/home"], [CalendarDays, "Events", "/events"], [Clapperboard, "Reels", "/reels"], [Ticket, "Passes", "/wallet"], [Compass, "Explore", "/explore"], [MessageCircle, "Messages", "/messages"], [User, "Profile", "/profile"]] as const;
 
 export default function Home() {
   useTitle("Feed");
+  const { user } = useAuth();
+  const [refreshing, setRefreshing] = useState(false);
+  useEffect(() => {
+    const go = () => { setRefreshing(true); loadFor(user).finally(() => setTimeout(() => setRefreshing(false), 500)); };
+    window.addEventListener("outsider:refresh", go);
+    return () => window.removeEventListener("outsider:refresh", go);
+  }, [user]);
   const s = useStore((x) => x);
   const me = person(s, s.me);
   const posts = s.posts.filter((p) => !s.blocked.includes(p.authorId));
@@ -27,6 +37,7 @@ export default function Home() {
       </aside>
 
       <main className="min-w-0 space-y-4">
+        {refreshing && <p className="text-center text-sm font-semibold text-accent-text" role="status">Refreshing…</p>}
         <Stories />
         <Composer />
         {posts.map((p) => <PostCard key={p.id} post={p} />)}

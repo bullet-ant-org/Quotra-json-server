@@ -22,7 +22,7 @@ function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="grid size-10 place-items-center rounded-full hover:bg-surface"
+      className="hidden size-10 place-items-center rounded-full hover:bg-surface sm:grid"
       aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
     >
       {theme === "dark" ? <Sun className="size-5" aria-hidden="true" /> : <Moon className="size-5" aria-hidden="true" />}
@@ -46,6 +46,11 @@ function SignedInActions() {
       <Link to="/profile" className="ml-1 hidden lg:block" aria-label="Your profile"><img src={avatar} alt="" className="size-9 rounded-full object-cover" /></Link>
     </>
   );
+}
+
+function ThemeMenuItem() {
+  const { theme, toggle } = useTheme();
+  return <button onClick={toggle} className="flex w-full items-center gap-2 rounded-full px-3.5 py-2 text-base font-semibold hover:bg-surface">{theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}{theme === "dark" ? "Light mode" : "Dark mode"}</button>;
 }
 
 function Header() {
@@ -87,6 +92,7 @@ function Header() {
       {open && (
         <nav id="mobile-nav" className="border-t border-line bg-bg px-4 py-3 lg:hidden" aria-label="Mobile">
           <ul className="grid gap-1">
+            <li><ThemeMenuItem /></li>
             <li><NavLink to="/for-business" className={(s) => `block ${link(s)} text-base`}>For business</NavLink></li>
             <li><NavLink to="/about" className={(s) => `block ${link(s)} text-base`}>About Outsider</NavLink></li>
             {user && [["/wallet", "Tokens & passes"], ["/events", "Events"], ["/explore", "Explore places"], ["/messages", "Messages"], ["/notifications", "Notifications"], ["/profile", "Profile"]].map(([to, l]) => <li key={to}><NavLink to={to} className={(s) => `block ${link(s)} text-base`}>{l}</NavLink></li>)}
@@ -127,6 +133,7 @@ function Dock() {
             <NavLink
               to={i.to}
               end={i.end}
+              onClick={() => { if (i.label === "Home" && location.pathname === i.to) { window.scrollTo({ top: 0, behavior: "smooth" }); window.dispatchEvent(new Event("outsider:refresh")); } }}
               className={({ isActive }) =>
                 i.primary
                   ? "mx-auto -mt-6 grid size-14 place-items-center rounded-full bg-accent text-accent-ink shadow-lg ring-4 ring-bg"
