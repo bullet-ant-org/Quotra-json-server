@@ -46,6 +46,12 @@ const seed = (): State => ({
     { id: "p2", authorId: "u2", text: "Grilled croaker and a sunset. Kora Terrace never misses. Book before 7 on Fridays.", media: [img(PH.rooftop), img(PH.food)], place: "kora-terrace-kitchen", tags: [], likes: ["u1"], comments: [], reposts: 1, at: now - 7 * h },
     { id: "p3", authorId: "b1", text: "Weekday day passes are back 🌴 Pool, beach and lunch. Outsiders get it for 100 tokens.", media: [img(PH.resort), img(PH.pool), img(PH.beach)], place: "palmfringe-beach-resort", tags: [], likes: ["u1", "u2", "u4"], comments: [], reposts: 9, at: now - 20 * h },
     { id: "p4", authorId: "u5", text: "Went out alone for the first time in months. Ten out of ten, would leave the house again.", media: [img(PH.beach2)], tags: [], likes: [], comments: [], reposts: 0, at: now - 30 * h },
+    { id: "m1", authorId: "me", text: "Sunday reset at the beach 🌊 #outsider", media: [img(PH.beach), img(PH.beach2), img(PH.resort)], place: "palmfringe-beach-resort", tags: [], likes: ["u1", "u2"], comments: [], reposts: 0, at: now - 4 * d },
+    { id: "m2", authorId: "me", text: "Waterfall therapy.", media: [img(PH.waterfall)], place: "ogbunike-falls-lookout", tags: [], likes: ["u5"], comments: [], reposts: 0, at: now - 6 * d },
+    { id: "m3", authorId: "me", text: "Rooftop dinner with the girls", media: [img(PH.rooftop), img(PH.food)], place: "kora-terrace-kitchen", tags: ["u2"], likes: [], comments: [], reposts: 0, at: now - 9 * d },
+    { id: "m4", authorId: "me", text: "Camp nights", media: [img(PH.camp)], tags: [], likes: [], comments: [], reposts: 0, at: now - 12 * d },
+    { id: "m5", authorId: "me", text: "Lake day", media: [img(PH.lake), img(PH.hills)], tags: [], likes: [], comments: [], reposts: 0, at: now - 15 * d },
+    { id: "m6", authorId: "me", text: "Museum date", media: [img(PH.museum)], tags: [], likes: [], comments: [], reposts: 0, at: now - 20 * d },
     { id: "p5", authorId: "u3", text: "Friday crew at the lounge. Who's coming next week? #fridayout", media: [img(PH.friends), img(PH.lounge), img(PH.friends3), img(PH.party)], place: "skyline-lounge-abuja", tags: ["u1"], likes: ["u5"], comments: [], reposts: 2, at: now - 2 * d },
   ],
   stories: [
@@ -98,7 +104,7 @@ const seed = (): State => ({
 
 export const LIVE = !!import.meta.env.VITE_API_URL;
 const empty = (): State => ({ me: "", people: [], posts: [], stories: [], highlights: [], balance: 0, txns: [], passes: [], events: [], blocked: [], ads: [], requests: [], places: [], unread: 0, pv: 0 });
-const KEY = "outsider-store-v1";
+const KEY = "outsider-store-v2";
 let state: State = LIVE ? empty() : (() => { try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : seed(); } catch { return seed(); } })();
 const subs = new Set<() => void>();
 

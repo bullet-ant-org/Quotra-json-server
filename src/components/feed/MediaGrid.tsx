@@ -1,36 +1,43 @@
-import { useState } from "react";
-import { Play } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { Clapperboard, Copy } from "lucide-react";
 import type { Media } from "../../lib/store";
 import { Lightbox } from "./Lightbox";
 
-function Tile({ m, onClick, more, className = "" }: { m: Media; onClick: () => void; more?: number; className?: string }) {
-  return (
-    <button onClick={onClick} className={`group relative overflow-hidden bg-surface ${className}`} aria-label={more ? `View ${more} more` : "Open media"}>
-      {m.type === "video"
-        ? <><video src={m.src} muted playsInline className="size-full object-cover" /><span className="absolute inset-0 grid place-items-center"><span className="grid size-12 place-items-center rounded-full bg-black/50 text-white backdrop-blur"><Play className="size-5 fill-white" /></span></span></>
-        : <img src={m.src} alt="" loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />}
-      {more ? <span className="absolute inset-0 grid place-items-center bg-black/50 font-display text-4xl font-extrabold text-white backdrop-blur-[2px]">+{more}</span> : null}
-    </button>
-  );
+// Top-right badge, Instagram style: slides = stacked squares, video = reel icon.
+export function MediaBadge({ media }: { media: Media[] }) {
+  if (media.length > 1) return <Copy className="absolute right-3 top-3 size-5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,.6)]" aria-label={`${media.length} items`} />;
+  if (media[0]?.type === "video") return <Clapperboard className="absolute right-3 top-3 size-5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,.6)]" aria-label="Video" />;
+  return null;
 }
 
-// 1: full · 2: side by side · 3+: big left, two stacked right, "+N" on the last tile.
+// One item at a time; multi-item posts advance every 4s (pausing while a video plays).
 export function MediaGrid({ media }: { media: Media[] }) {
-  const [open, setOpen] = useState<number | null>(null);
-  if (!media.length) return null;
+  const [i, setI] = useState(0);
+  const [open, setOpen] = useState(false);
+  const x0 = useRef(0);
   const n = media.length;
+  useEffect(() => {
+    if (n < 2 || open || media[i].type === "video" || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = setTimeout(() => setI((x) => (x + 1) % n), 4000);
+    return () => clearTimeout(t);
+  }, [i, n, open, media]);
+  if (!n) return null;
+  const m = media[i];
   return (
-    <>
-      {n === 1 && <Tile m={media[0]} onClick={() => setOpen(0)} className="block max-h-[34rem] w-full [&>img]:max-h-[34rem]" />}
-      {n === 2 && <div className="grid aspect-[2/1.15] grid-cols-2 gap-1">{media.map((m, i) => <Tile key={i} m={m} onClick={() => setOpen(i)} />)}</div>}
-      {n >= 3 && (
-        <div className="grid aspect-[4/3.2] grid-cols-[1.6fr_1fr] grid-rows-2 gap-1">
-          <Tile m={media[0]} onClick={() => setOpen(0)} className="row-span-2" />
-          <Tile m={media[1]} onClick={() => setOpen(1)} />
-          <Tile m={media[2]} onClick={() => setOpen(2)} more={n > 3 ? n - 3 : undefined} />
-        </div>
-      )}
-      {open !== null && <Lightbox media={media} start={open} onClose={() => setOpen(null)} />}
-    </>
+    <div className="relative aspect-[4/5] w-full overflow-hidden bg-surface" onTouchStart={(e) => (x0.current = e.touches[0].clientX)}
+      onTouchEnd={(e) => { const d = e.changedTouches[0].clientX - x0.current; if (Math.abs(d) > 40) setI((x) => (x + (d < 0 ? 1 : -1) + n) % n); }}>
+      <AnimatePresence initial={false}>
+        <motion.button key={i} onClick={() => setOpen(true)} initial={{ opacity: 0, scale: 1.03 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.6 }} className="absolute inset-0" aria-label="Open media">
+          {m.type === "video" ? <video src={m.src} autoPlay muted loop playsInline className="size-full object-cover" onEnded={() => setI((x) => (x + 1) % n)} /> : <img src={m.src} alt="" loading="lazy" className="size-full object-cover" />}
+        </motion.button>
+      </AnimatePresence>
+      <MediaBadge media={media} />
+      {n > 1 && <>
+        <span className="absolute right-3 top-10 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">{i + 1}/{n}</span>
+        <div className="absolute inset-x-0 bottom-3 flex justify-center gap-1">{media.map((_, k) => <button key={k} onClick={() => setI(k)} aria-label={`Show item ${k + 1}`} className={`size-1.5 rounded-full transition-all ${k === i ? "w-4 bg-white" : "bg-white/60"}`} />)}</div>
+      </>}
+      {open && <Lightbox media={media} start={i} onClose={() => setOpen(false)} />}
+    </div>
   );
 }

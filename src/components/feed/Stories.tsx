@@ -36,19 +36,17 @@ export function Stories() {
   const [open, setOpen] = useState<number | null>(null);
   const file = useRef<HTMLInputElement>(null);
   return (
-    <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-      <button onClick={() => file.current?.click()} className="relative h-48 w-28 shrink-0 overflow-hidden rounded-2xl border border-line bg-bg text-left sm:w-32">
-        <img src={me.avatar} alt="" className="h-32 w-full object-cover" />
-        <span className="absolute left-1/2 top-[7.25rem] grid size-9 -translate-x-1/2 place-items-center rounded-full bg-accent text-accent-ink ring-4 ring-bg"><Plus className="size-5" /></span>
-        <span className="block pt-6 text-center text-xs font-bold">Add story</span>
+    <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1 pt-1 sm:mx-0 sm:px-0">
+      <button onClick={() => file.current?.click()} className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1 text-xs">
+        <span className="relative"><img src={me.avatar} alt="" className="size-[4.25rem] rounded-full object-cover" />
+          <span className="absolute -bottom-0.5 -right-0.5 grid size-6 place-items-center rounded-full bg-accent text-accent-ink ring-[3px] ring-bg"><Plus className="size-4" /></span></span>
+        <span className="w-full truncate text-muted">Your story</span>
       </button>
       <input ref={file} type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) actions.addStory((await fileToMedia(f)).src); e.target.value = ""; }} />
       {list.map((st, n) => { const a = person(s, st.authorId); return (
-        <button key={st.id} onClick={() => setOpen(n)} className="group relative h-48 w-28 shrink-0 overflow-hidden rounded-2xl sm:w-32">
-          <img src={st.src} alt="" className="size-full object-cover transition-transform duration-500 group-hover:scale-105" />
-          <span className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
-          <img src={a.avatar} alt="" className="absolute left-2 top-2 size-10 rounded-full object-cover ring-[3px] ring-accent" />
-          <span className="absolute inset-x-2 bottom-2 truncate text-left text-xs font-bold text-white">{a.id === s.me ? "Your story" : a.name}</span>
+        <button key={st.id} onClick={() => setOpen(n)} className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1 text-xs">
+          <span className="rounded-full bg-gradient-to-tr from-amber-400 via-accent to-fuchsia-600 p-[2.5px]"><img src={a.avatar} alt="" className="size-[4rem] rounded-full object-cover ring-[3px] ring-bg" /></span>
+          <span className="w-full truncate">{a.id === s.me ? "You" : a.username}</span>
         </button>
       ); })}
       {open !== null && <Viewer list={list} start={open} onClose={() => setOpen(null)} />}
