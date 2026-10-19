@@ -1,10 +1,9 @@
 import { lazy, Suspense } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import Landing from "./pages/Landing";
 import Explore from "./pages/Explore";
 import Destination from "./pages/Destination";
-import Community from "./pages/Community";
 import Rewards from "./pages/Rewards";
 import ForBusiness from "./pages/ForBusiness";
 import Static from "./pages/Static";
@@ -36,7 +35,7 @@ export default function App() {
         <Route path="explore" element={<Explore />} />
         <Route path="map" element={<Suspense fallback={<p className="p-10 text-muted">Loading map…</p>}><MapPage /></Suspense>} />
         <Route path="destinations/:slug" element={<Destination />} />
-        <Route path="community" element={<Community />} />
+        <Route path="community" element={<Navigate to="/" replace />} />
         <Route path="rewards" element={<Rewards />} />
         <Route path="for-business" element={<ForBusiness />} />
         <Route path="about" element={<Static id="about" />} />

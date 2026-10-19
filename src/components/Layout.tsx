@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { Bell, Coins, Compass, Home, MapPinned, Menu, MessageCircle, Moon, Sun, User as UserIcon, Users, X } from "lucide-react";
+import { Bell, Coins, Compass, Home, MapPinned, Menu, MessageCircle, Moon, Sun, User as UserIcon, X } from "lucide-react";
 import { useAuth } from "../lib/auth/AuthContext";
 import { conversations, notifications } from "../fixtures/account";
 import { useStore, person, LIVE } from "../lib/store";
@@ -12,7 +12,6 @@ import { useEffect } from "react";
 const nav = [
   { to: "/explore", label: "Explore" },
   { to: "/map", label: "Map" },
-  { to: "/community", label: "Community" },
   { to: "/rewards", label: "Rewards" },
   { to: "/for-business", label: "For business" },
 ];
@@ -41,7 +40,7 @@ function SignedInActions() {
   const dot = (n: number) => n > 0 && <span className="absolute right-1 top-1 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-ink">{n}</span>;
   return (
     <>
-      <Link to="/wallet" className="hidden items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1.5 text-sm font-bold text-accent-text sm:inline-flex" aria-label={`Wallet, ${balance} tokens`}><Coins className="size-4" aria-hidden="true" />{balance}</Link>
+      <Link to="/wallet" className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1.5 text-sm font-bold text-accent-text" aria-label={`Wallet, ${balance} tokens`}><Coins className="size-4" aria-hidden="true" />{balance}</Link>
       <Link to="/messages" className={icon} aria-label={`Messages, ${unreadMsgs} unread`}><MessageCircle className="size-5" aria-hidden="true" />{dot(unreadMsgs)}</Link>
       <Link to="/notifications" className={icon} aria-label={`Notifications, ${unreadNotes} unread`}><Bell className="size-5" aria-hidden="true" />{dot(unreadNotes)}</Link>
       <Link to="/profile" className="ml-1 hidden lg:block" aria-label="Your profile"><img src={avatar} alt="" className="size-9 rounded-full object-cover" /></Link>
@@ -90,7 +89,8 @@ function Header() {
           <ul className="grid gap-1">
             <li><NavLink to="/for-business" className={(s) => `block ${link(s)} text-base`}>For business</NavLink></li>
             <li><NavLink to="/about" className={(s) => `block ${link(s)} text-base`}>About Outsider</NavLink></li>
-            <li><NavLink to="/community" className={(s) => `block ${link(s)} text-base`}>Community</NavLink></li>
+            {user && [["/wallet", "Tokens & passes"], ["/events", "Events"], ["/explore", "Explore places"], ["/messages", "Messages"], ["/notifications", "Notifications"], ["/profile", "Profile"]].map(([to, l]) => <li key={to}><NavLink to={to} className={(s) => `block ${link(s)} text-base`}>{l}</NavLink></li>)}
+            {!user && <li><NavLink to="/rewards" className={(s) => `block ${link(s)} text-base`}>How tokens work</NavLink></li>}
             {user ? <li><NavLink to="/settings" className={(s) => `block ${link(s)} text-base`}>Settings</NavLink></li> : <li><NavLink to="/login" className={(s) => `block ${link(s)} text-base`}>Log in</NavLink></li>}
           </ul>
         </nav>
@@ -104,7 +104,7 @@ const dockItems = [
   { to: "/", label: "Home", icon: Home, end: true },
   { to: "/explore", label: "Explore", icon: Compass },
   { to: "/map", label: "Map", icon: MapPinned, primary: true },
-  { to: "/community", label: "Community", icon: Users },
+  { to: "/rewards", label: "Tokens", icon: Coins },
   { to: "/rewards", label: "Rewards", icon: Coins },
 ];
 
@@ -144,7 +144,7 @@ function Dock() {
 }
 
 const footerCols = [
-  { title: "Outsider", links: [["About", "/about"], ["Explore places", "/explore"], ["Map", "/map"], ["Community", "/community"]] },
+  { title: "Outsider", links: [["About", "/about"], ["Explore places", "/explore"], ["Map", "/map"]] },
   { title: "Rewards", links: [["How tokens work", "/rewards"], ["Token terms", "/token-terms"], ["Community guidelines", "/guidelines"]] },
   { title: "Business", links: [["List your place", "/for-business"], ["Business sign up", "/register?type=business"]] },
   { title: "Legal", links: [["Terms of service", "/terms"], ["Privacy policy", "/privacy"]] },
