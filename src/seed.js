@@ -29,7 +29,7 @@ if (process.env.SEED_DEMO_ACCOUNTS === "true") {
   // Demo accounts for testing only. Remove or change these passwords before real users arrive.
   const hash = await bcrypt.hash("12345678", 11);
   for (const [email, role, firstName, lastName, username] of [["user@gmail.com", "user", "Ada", "Obi", "ada.obi"], ["brand@gmail.com", "brand", "Palmfringe", "Resort", "palmfringe"], ["admin@gmail.com", "admin", "Outsider", "Admin", "admin"]]) {
-    const u = await User.findOneAndUpdate({ email }, { $setOnInsert: { email, role, firstName, lastName, username, passwordHash: hash, emailVerified: true, balance: role === "user" ? 420 : 0 } }, { upsert: true, new: true });
+    const u = await User.findOneAndUpdate({ email }, { $setOnInsert: { email, role, firstName, lastName, username, passwordHash: hash, emailVerified: true, balance: role === "user" ? 420 : 0 } }, { upsert: true, returnDocument: "after" });
     if (role === "user") await Txn.updateOne({ ref: `seed:${u._id}` }, { $setOnInsert: { user: u._id, amount: 420, kind: "bonus", label: "Welcome bonus", ref: `seed:${u._id}` } }, { upsert: true });
     if (role === "brand") brand = u;
     console.log(`demo ${role}: ${email}`);
