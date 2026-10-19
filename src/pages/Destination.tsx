@@ -21,7 +21,7 @@ export default function Destination() {
 
   const mine = posts.filter((p) => p.destinationSlug === d.slug);
   const similar = destinations.filter((x) => x.category === d.category && x.slug !== d.slug).slice(0, 3);
-  const dir = `https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}`;
+  const dir = `/map?to=${d.slug}`;
 
   const share = async () => {
     const url = window.location.href;
@@ -84,7 +84,7 @@ export default function Destination() {
             <p className="text-sm text-muted">Entry and services</p>
             <p className="font-display text-3xl font-extrabold">{d.priceFrom !== null ? <>from {formatNaira(d.priceFrom)}</> : "Ask for prices"}</p>
             <p className="text-xs text-muted">Prices are set by the business and can change. Confirm before you go.</p>
-            <a href={dir} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 font-bold text-accent-ink"><Navigation className="size-4" aria-hidden="true" />Get directions</a>
+            <a href={dir} className="flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 font-bold text-accent-ink"><Navigation className="size-4" aria-hidden="true" />Get directions</a>
             <div className="grid grid-cols-2 gap-2">
               <Link to={`/login?next=${encodeURIComponent(`/destinations/${d.slug}`)}`} className="flex items-center justify-center gap-2 rounded-full border border-line px-4 py-2.5 text-sm font-semibold hover:border-accent"><MessageCircle className="size-4" aria-hidden="true" />Message</Link>
               <button onClick={share} className="flex items-center justify-center gap-2 rounded-full border border-line px-4 py-2.5 text-sm font-semibold hover:border-accent"><Share2 className="size-4" aria-hidden="true" />Share</button>
@@ -107,7 +107,7 @@ export default function Destination() {
         </section>
       )}
       <div className="fixed inset-x-3 bottom-24 z-40 flex gap-2 lg:hidden">
-        <a href={dir} target="_blank" rel="noopener noreferrer" className="flex flex-1 items-center justify-center gap-2 rounded-full bg-accent py-3.5 font-bold text-accent-ink shadow-xl"><Navigation className="size-4" aria-hidden="true" />Directions</a>
+        <a href={dir} className="flex flex-1 items-center justify-center gap-2 rounded-full bg-accent py-3.5 font-bold text-accent-ink shadow-xl"><Navigation className="size-4" aria-hidden="true" />Directions</a>
         <CheckInButton d={d} className="flex flex-1 items-center justify-center gap-2 rounded-full bg-ink py-3.5 font-bold text-bg shadow-xl" />
       </div>
     </article>
