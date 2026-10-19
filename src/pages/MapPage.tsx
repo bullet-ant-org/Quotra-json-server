@@ -19,6 +19,7 @@ const km = (a: [number, number], b: [number, number]) => {
   const r = (x: number) => (x * Math.PI) / 180;
   return 12742 * Math.asin(Math.sqrt(Math.sin(r(b[0] - a[0]) / 2) ** 2 + Math.cos(r(a[0])) * Math.cos(r(b[0])) * Math.sin(r(b[1] - a[1]) / 2) ** 2));
 };
+const ICON: Record<string, string> = { accommodation: "🏨", dining: "🍽️", nature: "🌿", recreation: "🎢", culture: "🏛️", nightlife: "🍸", events: "🎉" };
 const chip = (on: boolean) => `shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold ${on ? "border-accent bg-accent text-accent-ink" : "border-line bg-bg"}`;
 
 function Detail({ d, dist, onBack }: { d: Destination; dist?: number; onBack: () => void }) {
@@ -79,6 +80,7 @@ export default function MapPage() {
   const [cat, setCat] = useState<string | null>(null);
   const [minRating, setMinRating] = useState(0);
   const [maxPrice, setMaxPrice] = useState(0);
+  const [type, setType] = useState("");
   const [radius, setRadius] = useState(0);
   const [me, setMe] = useState<[number, number] | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -88,9 +90,9 @@ export default function MapPage() {
 
   const list = useMemo(() => destinations
     .map((d) => ({ d, dist: me ? km(me, [d.lat, d.lng]) : undefined }))
-    .filter(({ d, dist }) => (!q || `${d.name} ${d.city} ${d.subcategory}`.toLowerCase().includes(q.toLowerCase())) && (!cat || d.category === cat) && d.rating >= minRating
+    .filter(({ d, dist }) => (!q || `${d.name} ${d.city} ${d.subcategory}`.toLowerCase().includes(q.toLowerCase())) && (!cat || d.category === cat) && (!type || d.subcategory === type) && d.rating >= minRating
       && (!maxPrice || (d.priceFrom ?? 0) <= maxPrice) && (!radius || (dist ?? Infinity) <= radius))
-    .sort((a, b) => (a.dist ?? 0) - (b.dist ?? 0) || b.d.rating - a.d.rating), [q, cat, minRating, maxPrice, radius, me, pv]); // eslint-disable-line react-hooks/exhaustive-deps
+    .sort((a, b) => (a.dist ?? 0) - (b.dist ?? 0) || b.d.rating - a.d.rating), [q, cat, type, minRating, maxPrice, radius, me, pv]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!el.current) return;
@@ -112,7 +114,7 @@ export default function MapPage() {
     markers.current = list.map(({ d }) => {
       const b = document.createElement("button");
       b.className = "map-pin"; b.setAttribute("aria-label", d.name);
-      b.innerHTML = `<span class="map-dot"></span><span class="map-card"><img src="${destPhoto(d.slug, 200)}" alt=""/><b></b><i>★ ${d.rating.toFixed(1)}</i></span>`;
+      b.innerHTML = `<span class="map-dot">${ICON[d.category] ?? "📍"}</span><span class="map-card"><img src="${destPhoto(d.slug, 200)}" alt=""/><b></b><i>★ ${d.rating.toFixed(1)}</i></span>`;
       b.querySelector("b")!.textContent = d.name;
       b.onclick = () => { setSel(d.slug); setOpen(true); };
       return new maplibregl.Marker({ element: b, anchor: "bottom" }).setLngLat([d.lng, d.lat]).addTo(m);
@@ -143,9 +145,10 @@ export default function MapPage() {
           <div className="no-scrollbar flex gap-1.5 overflow-x-auto">
             <button onClick={locate} className={chip(!!me)}><LocateFixed className="mr-1 inline size-4" />Near me</button>
             <button onClick={() => setCat(null)} className={chip(!cat)}>All</button>
-            {categories.map((c) => <button key={c.id} onClick={() => setCat(cat === c.id ? null : c.id)} className={chip(cat === c.id)}>{c.name}</button>)}
+            {categories.map((c) => <button key={c.id} onClick={() => setCat(cat === c.id ? null : c.id)} className={chip(cat === c.id)}>{ICON[c.id]} {c.name}</button>)}
           </div>
-          {showFilters && <div className="grid grid-cols-3 gap-2 pt-1 text-xs font-semibold">
+          {showFilters && <div className="grid grid-cols-2 gap-2 pt-1 text-xs font-semibold sm:grid-cols-4">
+            <label className="space-y-1">Type<select value={type} onChange={(e) => setType(e.target.value)} className="w-full rounded-lg border border-line bg-bg px-2 py-2"><option value="">All types</option>{[...new Set(destinations.map((d) => d.subcategory))].sort().map((t) => <option key={t}>{t}</option>)}</select></label>
             <label className="space-y-1">Rating<select value={minRating} onChange={(e) => setMinRating(+e.target.value)} className="w-full rounded-lg border border-line bg-bg px-2 py-2"><option value={0}>Any</option><option value={4}>4.0+</option><option value={4.5}>4.5+</option></select></label>
             <label className="space-y-1">Budget<select value={maxPrice} onChange={(e) => setMaxPrice(+e.target.value)} className="w-full rounded-lg border border-line bg-bg px-2 py-2"><option value={0}>Any</option><option value={2500}>Under ₦2.5k</option><option value={10000}>Under ₦10k</option><option value={20000}>Under ₦20k</option></select></label>
             <label className="space-y-1">Distance<select value={radius} onChange={(e) => { setRadius(+e.target.value); if (+e.target.value && !me) locate(); }} className="w-full rounded-lg border border-line bg-bg px-2 py-2"><option value={0}>Any</option><option value={5}>5 km</option><option value={10}>10 km</option><option value={25}>25 km</option><option value={100}>100 km</option></select></label>
