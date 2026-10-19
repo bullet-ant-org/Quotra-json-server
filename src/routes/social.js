@@ -1,0 +1,143 @@
+import { Router } from "express";
+import { z } from "zod";
+import { Highlight, Post, Report, Story, User, oid } from "../models/index.js";
+import { bad, forbidden, h, notFound, page } from "../lib/http.js";
+import { requireAuth } from "../lib/auth.js";
+import { notify } from "../lib/notify.js";
+
+const r = Router();
+r.use(requireAuth);
+const pub = "firstName lastName username avatar role";
+const mediaZ = z.array(z.object({ type: z.enum(["image", "video"]), src: z.string().url().max(2048) })).max(20).default([]);
+const populate = (q) => q.populate("author", pub).populate("tags", pub).populate("place", "slug name city").populate("comments.author", pub);
+
+// Feed: people you follow + you, newest first, blocked authors removed.
+r.get("/feed", h(async (req, res) => {
+  const { limit, before } = page(req.query);
+  const me = req.user;
+  const f = { removed: false, author: { $in: [...me.following, me._id], $nin: me.blocked } };
+  if (before) f.createdAt = { $lt: before };
+  let items = await populate(Post.find(f).sort({ createdAt: -1 }).limit(limit));
+  if (items.length < limit && !before) {
+    const extra = await populate(Post.find({ removed: false, author: { $nin: [...me.blocked, me._id, ...me.following] } }).sort({ createdAt: -1 }).limit(limit - items.length));
+    items = [...items, ...extra];
+  }
+  res.json({ items, next: items.at(-1)?.createdAt ?? null });
+}));
+
+r.get("/reels", h(async (req, res) => {
+  res.json({ items: await populate(Post.find({ removed: false, "media.0": { $exists: true }, author: { $nin: req.user.blocked } }).sort({ createdAt: -1 }).limit(30)) });
+}));
+
+r.post("/posts", h(async (req, res) => {
+  const d = z.object({ text: z.string().max(5000).default(""), media: mediaZ, place: z.string().optional(), tags: z.array(z.string()).max(30).default([]),
+    party: z.object({ date: z.coerce.date(), max: z.number().int().min(1).max(200) }).optional() }).parse(req.body);
+  if (!d.text.trim() && !d.media.length) throw bad("Add some text or a photo.");
+  if (d.party && !d.place) throw bad("Tag a place to start a going party.");
+  const p = await Post.create({ ...d, author: req.user._id, hashtags: [...new Set((d.text.match(/#\w+/g) ?? []).map((x) => x.slice(1).toLowerCase()))], party: d.party && { ...d.party, going: [] } });
+  d.tags.forEach((t) => notify(t, "social", `@${req.user.username} tagged you in a post`, `/home#${p.id}`));
+  res.status(201).json({ post: await populate(Post.findById(p._id)) });
+}));
+
+r.delete("/posts/:id", h(async (req, res) => {
+  const p = await Post.findById(req.params.id);
+  if (!p) throw notFound();
+  if (!p.author.equals(req.user._id) && req.user.role !== "admin") throw forbidden();
+  p.removed = true; await p.save();
+  res.json({ ok: true });
+}));
+
+r.post("/posts/:id/like", h(async (req, res) => {
+  const p = await Post.findById(req.params.id);
+  if (!p) throw notFound();
+  const on = !p.likes.some((x) => x.equals(req.user._id));
+  await Post.updateOne({ _id: p._id }, on ? { $addToSet: { likes: req.user._id } } : { $pull: { likes: req.user._id } });
+  if (on && !p.author.equals(req.user._id)) notify(p.author, "social", `@${req.user.username} liked your post`, `/home#${p.id}`);
+  res.json({ liked: on, likes: p.likes.length + (on ? 1 : -1) });
+}));
+
+r.post("/posts/:id/comments", h(async (req, res) => {
+  const { text } = z.object({ text: z.string().trim().min(1).max(2000) }).parse(req.body);
+  const p = await Post.findByIdAndUpdate(req.params.id, { $push: { comments: { author: req.user._id, text } } }, { returnDocument: "after" });
+  if (!p) throw notFound();
+  if (!p.author.equals(req.user._id)) notify(p.author, "social", `@${req.user.username} commented: ${text.slice(0, 60)}`, `/home#${p.id}`);
+  res.status(201).json({ comments: (await populate(Post.findById(p._id))).comments });
+}));
+
+r.post("/posts/:id/repost", h(async (req, res) => {
+  const o = await Post.findByIdAndUpdate(req.params.id, { $inc: { reposts: 1 } });
+  if (!o) throw notFound();
+  const p = await Post.create({ author: req.user._id, text: o.text, media: o.media, place: o.place, repostOf: o._id });
+  res.status(201).json({ post: await populate(Post.findById(p._id)) });
+}));
+
+r.post("/posts/:id/party", h(async (req, res) => {
+  const me = req.user._id;
+  const joined = await Post.findOneAndUpdate({ _id: req.params.id, "party.going": { $ne: me }, $expr: { $lt: [{ $size: "$party.going" }, "$party.max"] } }, { $push: { "party.going": me } }, { returnDocument: "after" });
+  if (joined) return res.json({ going: true, count: joined.party.going.length });
+  const left = await Post.findOneAndUpdate({ _id: req.params.id, "party.going": me }, { $pull: { "party.going": me } }, { returnDocument: "after" });
+  if (left) return res.json({ going: false, count: left.party.going.length });
+  throw bad("This going party is full.");
+}));
+
+r.get("/stories", h(async (req, res) => {
+  res.json({ items: await Story.find({ author: { $in: [...req.user.following, req.user._id], $nin: req.user.blocked } }).sort({ createdAt: -1 }).populate("author", pub) });
+}));
+r.post("/stories", h(async (req, res) => {
+  const { src } = z.object({ src: z.string().url() }).parse(req.body);
+  res.status(201).json({ story: await Story.create({ author: req.user._id, src, expiresAt: new Date(Date.now() + 864e5) }) });
+}));
+
+r.get("/users/:username", h(async (req, res) => {
+  const u = await User.findOne({ username: req.params.username.toLowerCase() });
+  if (!u || u.blocked.some((x) => x.equals(req.user._id))) throw notFound("User not found");
+  const [posts, highlights, followers, likes] = await Promise.all([
+    populate(Post.find({ author: u._id, removed: false }).sort({ createdAt: -1 }).limit(30)),
+    Highlight.find({ owner: u._id }),
+    User.countDocuments({ following: u._id }),
+    Post.aggregate([{ $match: { author: u._id } }, { $group: { _id: null, n: { $sum: { $size: "$likes" } } } }]),
+  ]);
+  const { balance, email, blocked, settings, ...profile } = u.toJSON();
+  res.json({ user: req.user._id.equals(u._id) ? u : profile, posts, highlights, stats: { followers, following: u.following.length, likes: likes[0]?.n ?? 0 }, following: req.user.following.some((x) => x.equals(u._id)) });
+}));
+
+r.post("/users/:id/follow", h(async (req, res) => {
+  const t = oid(req.params.id);
+  if (t.equals(req.user._id)) throw bad("You can't follow yourself.");
+  const on = !req.user.following.some((x) => x.equals(t));
+  await User.updateOne({ _id: req.user._id }, on ? { $addToSet: { following: t } } : { $pull: { following: t } });
+  if (on) notify(t, "social", `@${req.user.username} started following you`, `/u/${req.user.username}`);
+  res.json({ following: on });
+}));
+
+r.post("/users/:id/block", h(async (req, res) => {
+  const t = oid(req.params.id);
+  const on = !req.user.blocked.some((x) => x.equals(t));
+  await User.updateOne({ _id: req.user._id }, on ? { $addToSet: { blocked: t }, $pull: { following: t } } : { $pull: { blocked: t } });
+  res.json({ blocked: on });
+}));
+
+r.get("/me/blocked", h(async (req, res) => res.json({ items: await User.find({ _id: { $in: req.user.blocked } }).select(pub) })));
+
+r.patch("/me", h(async (req, res) => {
+  const d = z.object({ firstName: z.string().trim().min(1).max(40), lastName: z.string().trim().max(40), bio: z.string().max(300), city: z.string().max(60), avatar: z.string().url(), cover: z.string().url(), interests: z.array(z.string()).max(20),
+    settings: z.object({ publicProfile: z.boolean(), showCheckins: z.boolean(), openMessages: z.boolean() }).partial() }).partial().parse(req.body);
+  const set = { ...d }; delete set.settings;
+  for (const [k, v] of Object.entries(d.settings ?? {})) set[`settings.${k}`] = v;
+  res.json({ user: await User.findByIdAndUpdate(req.user._id, { $set: set }, { returnDocument: "after" }) });
+}));
+
+r.get("/me/highlights", h(async (req, res) => res.json({ items: await Highlight.find({ owner: req.user._id }) })));
+r.post("/me/highlights", h(async (req, res) => {
+  const { name, items } = z.object({ name: z.string().trim().min(1).max(20), items: z.array(z.string().url()).min(1).max(50) }).parse(req.body);
+  res.status(201).json({ highlight: await Highlight.create({ owner: req.user._id, name, items, cover: items[0] }) });
+}));
+r.delete("/me/highlights/:id", h(async (req, res) => { await Highlight.deleteOne({ _id: req.params.id, owner: req.user._id }); res.json({ ok: true }); }));
+
+r.post("/reports", h(async (req, res) => {
+  const d = z.object({ target: z.enum(["post", "user", "place", "comment"]), targetId: z.string(), reason: z.string().max(500) }).parse(req.body);
+  await Report.create({ ...d, by: req.user._id });
+  res.status(201).json({ ok: true });
+}));
+
+export default r;
