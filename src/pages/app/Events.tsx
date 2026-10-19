@@ -48,7 +48,7 @@ function EventCard({ e, me, onQr }: { e: EventItem; me: string; onQr: (e: EventI
         )}
         {e.slots ? (
           mine ? <button onClick={() => onQr(e)} className="mt-2 flex w-full items-center justify-center gap-2 rounded-full bg-ink py-3 font-bold text-bg"><Ticket className="size-4" />Show my QR code</button>
-            : <button disabled={full} onClick={() => setErr(actions.reserve(e.id))} className="mt-2 w-full rounded-full bg-accent py-3 font-bold text-accent-ink disabled:bg-surface-2 disabled:text-muted">{full ? "Fully reserved" : `Reserve for ${e.tokenCost} tokens`}</button>
+            : <button disabled={full} onClick={() => actions.reserve(e.id).then(setErr)} className="mt-2 w-full rounded-full bg-accent py-3 font-bold text-accent-ink disabled:bg-surface-2 disabled:text-muted">{full ? "Fully reserved" : `Reserve for ${e.tokenCost} tokens`}</button>
         ) : <button className="mt-2 w-full rounded-full border-2 border-line py-3 font-bold">Interested</button>}
         {err && <p role="alert" className="text-sm font-medium text-red-600">{err}</p>}
       </div>

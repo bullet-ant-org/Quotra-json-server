@@ -21,5 +21,7 @@ Overview, Feed, My places (submit for review), Ads & promotions, Visit requests,
 Overview, Token passes (budget ÷ tokens per person = spots), Events sponsorship, Users (suspend), Places & brands
 (approve), Ads review, Reports.
 
-## Not connected
-All state lives in the browser (`src/lib/store.ts`) so the three roles share data on one device. Replace with APIs.
+## Live mode (VITE_API_URL set)
+`src/lib/remote.ts` loads feed, stories, wallet, passes, events, profile, brand and admin data from the API and
+sends every action to it. Messages use Socket.IO for live delivery and typing. Uploads go to Cloudinary via signed
+requests. Brand billing uses Paystack checkout. Without VITE_API_URL the app stays in demo mode.

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { destinations, formatNaira } from "../fixtures/destinations";
 import { Rating } from "../components/Stars";
 import { useTitle } from "../lib/useTitle";
+import { useStore } from "../lib/store";
 import { List, MapIcon } from "lucide-react";
 
 const style: maplibregl.StyleSpecification = {
@@ -22,6 +23,7 @@ const style: maplibregl.StyleSpecification = {
 
 export default function MapPage() {
   useTitle("Map");
+  const pv = useStore((s) => s.pv);
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export default function MapPage() {
       new maplibregl.Marker({ element: pin }).setLngLat([d.lng, d.lat]).addTo(m);
     });
     return () => m.remove();
-  }, []);
+  }, [pv]);
 
   useEffect(() => {
     const d = destinations.find((x) => x.slug === selected);

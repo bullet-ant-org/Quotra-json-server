@@ -5,8 +5,10 @@ import { categories, type CategoryId } from "../fixtures/categories";
 import { destinations } from "../fixtures/destinations";
 import { DestinationCard } from "../components/DestinationCard";
 import { useTitle } from "../lib/useTitle";
+import { useStore } from "../lib/store";
 
 export default function Explore() {
+  useStore((s) => s.pv); // re-render when the live place catalogue loads
   useTitle("Explore places");
   const [params, setParams] = useSearchParams();
   const q = params.get("q") ?? "";

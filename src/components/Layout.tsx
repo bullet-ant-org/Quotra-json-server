@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Bell, Coins, Compass, Home, MapPinned, Menu, MessageCircle, Moon, Sun, User as UserIcon, Users, X } from "lucide-react";
 import { useAuth } from "../lib/auth/AuthContext";
 import { conversations, notifications } from "../fixtures/account";
-import { useStore, person } from "../lib/store";
+import { useStore, person, LIVE } from "../lib/store";
 import { CalendarDays, Clapperboard } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { Logo } from "./Logo";
@@ -34,8 +34,9 @@ function ThemeToggle() {
 function SignedInActions() {
   const balance = useStore((s) => s.balance);
   const avatar = useStore((s) => person(s, s.me).avatar);
-  const unreadMsgs = conversations.reduce((n, c) => n + c.unread, 0);
-  const unreadNotes = notifications.filter((n) => n.unread).length;
+  const liveUnread = useStore((s) => s.unread ?? 0);
+  const unreadMsgs = LIVE ? 0 : conversations.reduce((n, c) => n + c.unread, 0);
+  const unreadNotes = LIVE ? liveUnread : notifications.filter((n) => n.unread).length;
   const icon = "relative grid size-10 place-items-center rounded-full hover:bg-surface";
   const dot = (n: number) => n > 0 && <span className="absolute right-1 top-1 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-ink">{n}</span>;
   return (

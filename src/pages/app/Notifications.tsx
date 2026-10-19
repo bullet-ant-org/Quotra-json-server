@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { BellOff, Building2, Coins, Heart, MessageCircle, Target } from "lucide-react";
-import { notifications, type Note } from "../../fixtures/account";
+import { useEffect } from "react";
+import { notifications as demoNotes, type Note } from "../../fixtures/account";
+import { get, post } from "../../lib/api";
+import { LIVE, set as setStore } from "../../lib/store";
 import { useTitle } from "../../lib/useTitle";
 
 const icons = { reward: Coins, social: Heart, message: MessageCircle, business: Building2, challenge: Target };
@@ -11,6 +14,13 @@ export default function Notifications() {
   useTitle("Notifications");
   const [f, setF] = useState<(typeof filters)[number][0]>("all");
   const [read, setRead] = useState<Set<string>>(new Set());
+  const [notifications, setNotes] = useState<Note[]>(LIVE ? [] : demoNotes);
+  useEffect(() => {
+    if (!LIVE) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    get<{ items: any[] }>("/notifications").then((r) => setNotes(r.items.map((n) => ({ id: n.id, kind: (["reward", "social", "message", "business", "challenge"].includes(n.kind) ? n.kind : "social") as Note["kind"], text: n.text, when: new Date(n.createdAt).toLocaleString(), unread: !n.read, to: n.link }))));
+    post("/notifications/read", {}).then(() => setStore((s) => { s.unread = 0; })).catch(() => {});
+  }, []);
   const list = notifications.filter((n) => f === "all" || n.kind === f);
   const unread = (n: Note) => n.unread && !read.has(n.id);
 
@@ -30,7 +40,7 @@ export default function Notifications() {
             const body = (
               <>
                 <span className={`grid size-11 shrink-0 place-items-center rounded-full ${unread(n) ? "bg-accent text-accent-ink" : "bg-surface"}`}><I className="size-5" aria-hidden="true" /></span>
-                <p className="flex-1">{n.text}<span className="mt-0.5 block text-sm text-muted">{n.when} ago</span></p>
+                <p className="flex-1">{n.text}<span className="mt-0.5 block text-sm text-muted">{n.when}{LIVE ? "" : " ago"}</span></p>
                 {unread(n) && <span className="mt-2 size-2.5 shrink-0 rounded-full bg-accent" aria-label="Unread" />}
               </>
             );

@@ -21,6 +21,8 @@ export interface Destination {
   description: string;
   hours: string;
   hue: number;
+  photo?: string;
+  id?: string;
 }
 
 export const destinations: Destination[] = [
@@ -116,4 +118,4 @@ const photoBySlug: Record<string, string> = {
   "lakeside-gardens-calabar": PH.lake, "arewa-heritage-museum": PH.museum, "skyline-lounge-abuja": PH.lounge,
   "waveform-water-park": PH.waterpark, "harbour-view-boat-club": PH.boat, "obudu-ridge-camp": PH.camp, "marina-bean-cafe": PH.cafe,
 };
-export const destPhoto = (slug: string, w = 900) => photo(photoBySlug[slug] ?? PH.beach, w);
+export const destPhoto = (slug: string, w = 900) => destinations.find((d) => d.slug === slug)?.photo ?? photo(photoBySlug[slug] ?? PH.beach, w);

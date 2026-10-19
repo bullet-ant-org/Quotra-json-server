@@ -22,6 +22,7 @@ export interface State {
   me: string; people: Person[]; posts: Post[]; stories: Story[]; highlights: Highlight[];
   balance: number; txns: Txn[]; passes: Pass[]; events: EventItem[]; blocked: string[];
   ads: Ad[]; requests: VisitReq[]; places: Place[];
+  unread?: number; pv?: number; // pv bumps when the place catalogue reloads
 }
 
 const now = Date.now(), h = 3600e3, d = 24 * h;
@@ -95,14 +96,16 @@ const seed = (): State => ({
   ],
 });
 
+export const LIVE = !!import.meta.env.VITE_API_URL;
+const empty = (): State => ({ me: "", people: [], posts: [], stories: [], highlights: [], balance: 0, txns: [], passes: [], events: [], blocked: [], ads: [], requests: [], places: [], unread: 0, pv: 0 });
 const KEY = "outsider-store-v1";
-let state: State = (() => { try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : seed(); } catch { return seed(); } })();
+let state: State = LIVE ? empty() : (() => { try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : seed(); } catch { return seed(); } })();
 const subs = new Set<() => void>();
 
 export function set(fn: (s: State) => void) {
   state = structuredClone(state);
   fn(state);
-  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* storage full: keep in memory */ }
+  if (!LIVE) try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* storage full: keep in memory */ }
   subs.forEach((f) => f());
 }
 export const getState = () => state;
@@ -124,7 +127,7 @@ export const actions = {
   unblock: (id: string) => set((s) => { s.blocked = s.blocked.filter((x) => x !== id); }),
   addStory: (src: string) => set((s) => { s.stories.unshift({ id: uid(), authorId: s.me, src, at: Date.now() }); }),
   addHighlight: (name: string, items: string[]) => set((s) => { s.highlights.push({ id: uid(), name, cover: items[0], items }); }),
-  claimPass: (id: string): string | null => {
+  claimPass: async (id: string): Promise<string | null> => {
     const s = getState(); const p = s.passes.find((x) => x.id === id)!;
     if (p.claimed.includes(s.me)) return "You already have this pass.";
     if (p.claimed.length >= passSlots(p)) return "All passes for today are gone. New ones drop tomorrow.";
@@ -132,7 +135,7 @@ export const actions = {
     set((st) => { const q = st.passes.find((x) => x.id === id)!; q.claimed.push(st.me); st.balance -= q.perPerson; st.txns.unshift({ id: uid(), label: `Claimed: ${q.title}`, amount: -q.perPerson, at: Date.now() }); });
     return null;
   },
-  reserve: (id: string): string | null => {
+  reserve: async (id: string): Promise<string | null> => {
     const s = getState(); const e = s.events.find((x) => x.id === id)!;
     if (!e.slots || !e.tokenCost) return "This event isn't sponsored.";
     if (e.reserved.includes(s.me)) return "You already reserved a spot.";
@@ -147,12 +150,13 @@ export const actions = {
   addEvent: (e: Omit<EventItem, "id" | "reserved">) => set((s) => { s.events.unshift({ ...e, id: uid(), reserved: [] }); }),
   setUserStatus: (id: string, status: "active" | "suspended") => set((s) => { const p = s.people.find((x) => x.id === id); if (p) p.status = status; }),
   setPlace: (slug: string, status: Place["status"]) => set((s) => { const p = s.places.find((x) => x.slug === slug); if (p) p.status = status; }),
-  addPlace: (name: string) => set((s) => { s.places.unshift({ slug: name.toLowerCase().replace(/\W+/g, "-"), name, owner: "b1", status: "pending" }); }),
+  addPlace: (p: { name: string; category: string; address: string; city: string; state: string; lat: number; lng: number; photos: string[] }) => set((s) => { s.places.unshift({ slug: p.name.toLowerCase().replace(/\W+/g, "-"), name: p.name, owner: "b1", status: "pending" }); }),
   addAd: (a: Omit<Ad, "id" | "status" | "reach">) => set((s) => { s.ads.unshift({ ...a, id: uid(), status: "review", reach: 0 }); }),
   setAd: (id: string, status: Ad["status"]) => set((s) => { s.ads.find((x) => x.id === id)!.status = status; }),
   setRequest: (id: string, status: VisitReq["status"]) => set((s) => { s.requests.find((x) => x.id === id)!.status = status; }),
-  requestVisit: (note: string, date: string, people: number) => set((s) => { s.requests.unshift({ id: uid(), from: s.me, date, people, note, status: "pending" }); }),
-  reset: () => { try { localStorage.removeItem(KEY); } catch { /* */ } state = seed(); subs.forEach((f) => f()); },
+  requestVisit: (note: string, date: string, people: number, _place?: string) => set((s) => { s.requests.unshift({ id: uid(), from: s.me, date, people, note, status: "pending" }); }),
+  reset: () => {
+    if (LIVE) return; try { localStorage.removeItem(KEY); } catch { /* */ } state = seed(); subs.forEach((f) => f()); },
 };
 
 export const ago = (t: number) => {

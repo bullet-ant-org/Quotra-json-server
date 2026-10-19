@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { post } from "../../lib/api";
+import { LIVE } from "../../lib/store";
 import { createPortal } from "react-dom";
 import { CalendarDays, Camera, Compass, MapPin, MessageCircle, Pencil, Plus, Settings, X } from "lucide-react";
 import { PostCard } from "../../components/feed/PostCard";
@@ -34,6 +36,7 @@ function NewHighlight({ onClose, mine }: { onClose: () => void; mine: string[] }
 
 export default function Profile() {
   const { username } = useParams();
+  const nav = useNavigate();
   const s = useStore((x) => x);
   const p = username ? s.people.find((x) => x.username === username) : person(s, s.me);
   useTitle(p?.name ?? "Profile");
@@ -84,7 +87,7 @@ export default function Profile() {
             <Link to="/settings" className="grid w-11 place-items-center rounded-xl bg-surface" aria-label="Settings"><Settings className="size-5" /></Link>
           </> : <>
             <button onClick={() => actions.follow(p.id)} className={`rounded-xl py-2.5 font-bold ${p.following ? "bg-surface" : "bg-accent text-accent-ink"}`}>{p.following ? "Following" : "Follow"}</button>
-            <Link to="/messages/c1" className="flex items-center justify-center gap-2 rounded-xl bg-surface py-2.5 font-bold"><MessageCircle className="size-4" />Message</Link>
+            <button onClick={async () => { if (!LIVE) return nav("/messages/c1"); try { const r = await post<{ conversation: { id: string } }>("/conversations", { members: [p.id] }); nav(`/messages/${r.conversation.id}`); } catch (e) { alert((e as Error).message); } }} className="flex items-center justify-center gap-2 rounded-xl bg-surface py-2.5 font-bold"><MessageCircle className="size-4" />Message</button>
             <button onClick={() => (blocked ? actions.unblock(p.id) : actions.block(p.id))} className="rounded-xl bg-surface px-3 text-sm font-bold text-red-600">{blocked ? "Unblock" : "Block"}</button>
           </>}
         </div>

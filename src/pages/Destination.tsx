@@ -8,10 +8,12 @@ import { Rating } from "../components/Stars";
 import { SignInPrompt } from "../components/SignInPrompt";
 import { DestinationCard } from "../components/DestinationCard";
 import { useTitle } from "../lib/useTitle";
+import { useStore } from "../lib/store";
 import NotFound from "./NotFound";
 import { CheckInButton } from "../components/CheckInButton";
 
 export default function Destination() {
+  useStore((s) => s.pv); // re-render when the live place catalogue loads
   const { slug = "" } = useParams();
   const d = bySlug(slug);
   useTitle(d?.name);

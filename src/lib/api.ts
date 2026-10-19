@@ -8,7 +8,7 @@ export class ApiNotConfigured extends Error {
 
 export const apiBase = import.meta.env.VITE_API_URL as string | undefined;
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   if (!apiBase) throw new ApiNotConfigured();
   const res = await fetch(`${apiBase}/v1${path}`, {
     method,

@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { get, post } from "../../lib/api";
+import { LIVE } from "../../lib/store";
 import { Route, Routes } from "react-router-dom";
-import { CalendarDays, Inbox, LayoutDashboard, MapPinned, Megaphone, Newspaper, UserCheck } from "lucide-react";
+import { CalendarDays, CreditCard, Inbox, LayoutDashboard, MapPinned, Megaphone, Newspaper, UserCheck } from "lucide-react";
 import { actions, person, useStore } from "../../lib/store";
 import { destPhoto, formatNaira } from "../../fixtures/destinations";
-import { PH, photo } from "../../lib/media";
+import { PH, photo, fileToMedia } from "../../lib/media";
 import { Badge, Bars, btn, btn2, Card, inputCls, Shell, Stat } from "./Shell";
 import Home from "../app/Home";
 import Messages from "../app/Messages";
@@ -17,7 +19,51 @@ const nav = [
   { to: "/brand/requests", label: "Visit requests", icon: UserCheck },
   { to: "/brand/inbox", label: "Inbox", icon: Inbox },
   { to: "/brand/events", label: "Events", icon: CalendarDays },
+  { to: "/brand/billing", label: "Billing", icon: CreditCard },
 ];
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const demoPlans = [
+  { id: "starter", name: "Starter", amount: 5000, interval: "monthly", features: ["2 places", "2 live ads", "Visit requests"] },
+  { id: "growth", name: "Growth", amount: 15000, interval: "monthly", features: ["5 places", "10 live ads", "Analytics", "Priority review"] },
+  { id: "pro", name: "Pro", amount: 40000, interval: "monthly", features: ["20 places", "Unlimited ads", "Team accounts", "Sponsored placement"] },
+];
+
+function Billing() {
+  const [plans, setPlans] = useState<any[]>(LIVE ? [] : demoPlans);
+  const [sub, setSub] = useState<any>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  useEffect(() => {
+    if (!LIVE) return;
+    const ref = new URLSearchParams(location.search).get("reference");
+    (ref ? get<any>(`/billing/verify/${ref}`).then((r) => setMsg(r.status === "active" ? "Payment confirmed. Your plan is active." : "Payment is still processing. Refresh in a minute.")) : Promise.resolve())
+      .finally(() => { get<any>("/billing/plans").then((r) => setPlans(r.items)); get<any>("/billing/subscription").then((r) => setSub(r.subscription)); });
+  }, []);
+  const choose = async (id: string) => {
+    if (!LIVE) return setMsg("Billing works once the API is connected. Nothing was charged.");
+    setBusy(id);
+    try { location.href = (await post<any>("/billing/subscribe", { planId: id })).authorizationUrl; } catch (e) { setMsg((e as Error).message); setBusy(null); }
+  };
+  const manage = async (path: string) => { try { const r = await post<any>(path, {}); if (r.link) location.href = r.link; else { setMsg("Subscription cancelled."); setSub({ ...sub, status: "cancelled" }); } } catch (e) { setMsg((e as Error).message); } };
+  const active = sub?.status === "active";
+  return (
+    <div className="space-y-5">
+      {msg && <Card className="bg-accent-soft text-sm font-semibold">{msg}</Card>}
+      {sub && <Card className="flex flex-wrap items-center gap-3"><div className="flex-1"><p className="text-sm text-muted">Current plan</p><p className="font-display text-xl font-bold">{sub.plan?.name ?? "—"} <Badge tone={active ? "ok" : "warn"}>{sub.status}</Badge></p></div>
+        {active && <><button onClick={() => manage("/billing/manage")} className={btn2}>Update card</button><button onClick={() => confirm("Cancel your plan?") && manage("/billing/cancel")} className={btn2}>Cancel plan</button></>}</Card>}
+      <div className="grid gap-4 md:grid-cols-3">{plans.map((p, i) => (
+        <Card key={p.id} className={`flex flex-col gap-3 ${i === 1 ? "ring-2 ring-accent" : ""}`}>
+          <p className="font-display text-xl font-bold">{p.name}</p>
+          <p><span className="font-display text-4xl font-extrabold">{formatNaira(p.amount)}</span><span className="text-muted"> / {p.interval === "monthly" ? "month" : p.interval}</span></p>
+          <ul className="flex-1 space-y-1.5 text-sm">{p.features.map((f: string) => <li key={f}>✓ {f}</li>)}</ul>
+          <button disabled={active || busy === p.id} onClick={() => choose(p.id)} className={`${btn} w-full`}>{busy === p.id ? "Opening Paystack…" : active ? "You have a plan" : `Choose ${p.name}`}</button>
+        </Card>
+      ))}</div>
+      <p className="text-xs text-muted">Payments are processed by Paystack. Your plan activates only after Paystack confirms the payment.</p>
+    </div>
+  );
+}
 
 function Requests({ limit }: { limit?: number }) {
   const s = useStore((x) => x);
@@ -55,16 +101,26 @@ function Overview() {
 
 function Places() {
   const s = useStore((x) => x);
-  const [name, setName] = useState("");
+  const blank = { name: "", category: "accommodation", address: "", city: "", state: "", lat: "", lng: "" };
+  const [f, setF] = useState(blank);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const ok = f.name.trim() && f.city && f.state && f.address && f.lat && f.lng;
+  const field = (k: keyof typeof blank, label: string) => <label className="block space-y-1 text-sm font-semibold">{label}<input value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} className={inputCls} /></label>;
   const mine = s.places.filter((p) => p.owner === "b1");
   return (
     <div className="grid gap-5 xl:grid-cols-[22rem_1fr]">
       <Card className="h-fit space-y-3">
         <h2 className="font-display text-lg font-bold">Add a place</h2>
         <p className="text-sm text-muted">New places are reviewed by Outsider before they go live.</p>
-        <label className="block space-y-1 text-sm font-semibold">Place name<input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="e.g. Sandbar Island Retreat" /></label>
-        <label className="block space-y-1 text-sm font-semibold">Photos<input type="file" accept="image/*" multiple className={`${inputCls} file:mr-3 file:rounded-full file:border-0 file:bg-accent-soft file:px-3 file:py-1 file:font-bold file:text-accent-text`} /></label>
-        <button disabled={!name.trim()} onClick={() => { actions.addPlace(name.trim()); setName(""); }} className={`${btn} w-full`}>Submit for review</button>
+        {field("name", "Place name")}
+        <label className="block space-y-1 text-sm font-semibold">Category<select value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} className={inputCls}>{["accommodation", "dining", "nature", "recreation", "culture", "nightlife", "events"].map((c) => <option key={c}>{c}</option>)}</select></label>
+        {field("address", "Address")}
+        <div className="grid grid-cols-2 gap-2">{field("city", "City")}{field("state", "State")}</div>
+        <div className="grid grid-cols-2 gap-2">{field("lat", "Latitude")}{field("lng", "Longitude")}</div>
+        <button type="button" onClick={() => navigator.geolocation?.getCurrentPosition((p) => setF((x) => ({ ...x, lat: p.coords.latitude.toFixed(6), lng: p.coords.longitude.toFixed(6) })))} className={btn2}>Use my current location</button>
+        <label className="block space-y-1 text-sm font-semibold">Photos<input type="file" accept="image/*" multiple onChange={async (e) => { setBusy(true); const out = await Promise.all([...(e.target.files ?? [])].map((x) => fileToMedia(x).catch(() => null))); setPhotos(out.filter(Boolean).map((m) => m!.src)); setBusy(false); }} className={`${inputCls} file:mr-3 file:rounded-full file:border-0 file:bg-accent-soft file:px-3 file:py-1 file:font-bold file:text-accent-text`} /></label>
+        <button disabled={!ok || busy} onClick={() => { actions.addPlace({ name: f.name.trim(), category: f.category, address: f.address, city: f.city, state: f.state, lat: +f.lat, lng: +f.lng, photos }); setF(blank); setPhotos([]); }} className={`${btn} w-full`}>{busy ? "Uploading photos…" : "Submit for review"}</button>
       </Card>
       <div className="grid gap-4 sm:grid-cols-2">{mine.map((p) => (
         <Card key={p.slug} className="overflow-hidden p-0">
@@ -138,6 +194,7 @@ export default function Brand() {
         <Route path="inbox" element={<div className="-m-4 overflow-hidden sm:-m-6 [&>div]:h-[calc(100dvh-4rem)]"><Messages /></div>} />
         <Route path="inbox/:id" element={<div className="-m-4 overflow-hidden sm:-m-6"><Messages /></div>} />
         <Route path="events" element={<BrandEvents />} />
+        <Route path="billing" element={<Billing />} />
       </Routes>
     </Shell>
   );

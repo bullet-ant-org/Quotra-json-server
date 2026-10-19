@@ -15,7 +15,8 @@ export const PH = {
 } as const;
 
 // Downscale an uploaded image so demo posts fit in browser storage.
-export function fileToMedia(file: File): Promise<{ type: "image" | "video"; src: string }> {
+export async function fileToMedia(file: File): Promise<{ type: "image" | "video"; src: string }> {
+  if (import.meta.env.VITE_API_URL) return (await import("./remote")).uploadFile(file); // Cloudinary in live mode
   if (file.type.startsWith("video/")) return Promise.resolve({ type: "video", src: URL.createObjectURL(file) });
   return new Promise((res, rej) => {
     const img = new Image();

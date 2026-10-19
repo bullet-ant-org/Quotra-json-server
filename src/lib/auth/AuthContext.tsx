@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { auth, type User } from "./service";
+import { disconnectSocket, loadFor } from "../remote";
 
 interface Ctx {
   user: User | null;
@@ -15,7 +16,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
   useEffect(() => { auth.me().then(setUser).finally(() => setReady(true)); }, []);
-  const logout = useCallback(async () => { await auth.logout().catch(() => {}); setUser(null); }, []);
+  useEffect(() => { loadFor(user).catch(() => {}); }, [user]);
+  const logout = useCallback(async () => { await auth.logout().catch(() => {}); disconnectSocket(); setUser(null); }, []);
   return <AuthCtx.Provider value={{ user, ready, setUser, logout }}>{children}</AuthCtx.Provider>;
 }
 

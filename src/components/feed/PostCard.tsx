@@ -4,6 +4,7 @@ import { CalendarCheck, Globe, Heart, ThumbsUp, MapPin, MessageCircle, MoreHoriz
 import { actions, ago, person, useStore, type Post } from "../../lib/store";
 import { bySlug } from "../../fixtures/destinations";
 import { MediaGrid } from "./MediaGrid";
+import { LIVE } from "../../lib/store";
 
 function RichText({ text }: { text: string }) {
   return <>{text.split(/(#\w+|@[\w.]+)/g).map((t, i) => /^[#@]/.test(t) ? <span key={i} className="font-semibold text-accent-text">{t}</span> : t)}</>;
@@ -77,7 +78,7 @@ export function PostCard({ post }: { post: Post }) {
       {place && (
         <div className="mx-4 mb-3 grid grid-cols-2 gap-2 border-t border-line pt-3">
           <button onClick={() => nav(`/destinations/${place.slug}`)} className="flex items-center justify-center gap-2 rounded-xl bg-accent py-2.5 text-sm font-bold text-accent-ink"><Ticket className="size-4" />Book a visit</button>
-          <button onClick={() => { actions.requestVisit(`Hey! I'd like to come over. (from @${person(s, s.me).username})`, new Date().toISOString().slice(0, 10), 1); nav("/messages/c2"); }} className="flex items-center justify-center gap-2 rounded-xl bg-surface py-2.5 text-sm font-bold"><CalendarCheck className="size-4" />Message place</button>
+          <button onClick={() => { actions.requestVisit(`Hey! I'd like to come over. (from @${person(s, s.me).username})`, new Date().toISOString().slice(0, 10), 1, place.slug); nav(LIVE ? "/messages" : "/messages/c2"); }} className="flex items-center justify-center gap-2 rounded-xl bg-surface py-2.5 text-sm font-bold"><CalendarCheck className="size-4" />Message place</button>
         </div>
       )}
 

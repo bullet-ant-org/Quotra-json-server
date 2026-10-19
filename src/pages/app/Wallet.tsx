@@ -21,7 +21,7 @@ function PassCard({ p, me, balance, onQr }: { p: Pass; me: string; balance: numb
         <p className="flex items-center gap-1.5 font-display text-xl font-bold text-accent-text"><Coins className="size-5" />{p.perPerson}</p>
         <p className="text-xs font-semibold text-muted">{left > 0 ? `${left} of ${slots} left today` : "Gone for today"}</p>
         {mine ? <button onClick={() => onQr(p)} className="mt-2 inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-bold text-bg"><Ticket className="size-4" />Show pass</button>
-          : <button disabled={left <= 0 || !afford} onClick={() => setErr(actions.claimPass(p.id))} className="mt-2 rounded-full bg-accent px-4 py-2.5 text-sm font-bold text-accent-ink disabled:bg-surface-2 disabled:text-muted">{left <= 0 ? "Sold out" : afford ? "Use tokens" : `Need ${p.perPerson - balance} more`}</button>}
+          : <button disabled={left <= 0 || !afford} onClick={() => actions.claimPass(p.id).then(setErr)} className="mt-2 rounded-full bg-accent px-4 py-2.5 text-sm font-bold text-accent-ink disabled:bg-surface-2 disabled:text-muted">{left <= 0 ? "Sold out" : afford ? "Use tokens" : `Need ${p.perPerson - balance} more`}</button>}
         {err && <p role="alert" className="text-sm font-medium text-red-600">{err}</p>}
       </div>
     </article>
