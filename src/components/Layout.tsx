@@ -105,7 +105,7 @@ const dockItems = [
   { to: "/explore", label: "Explore", icon: Compass },
   { to: "/map", label: "Map", icon: MapPinned, primary: true },
   { to: "/rewards", label: "Tokens", icon: Coins },
-  { to: "/rewards", label: "Rewards", icon: Coins },
+  { to: "/login", label: "Log in", icon: UserIcon },
 ];
 
 const signedInDock = [
