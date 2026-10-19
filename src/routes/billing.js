@@ -6,7 +6,7 @@ import { bad, h, notFound } from "../lib/http.js";
 import { requireRole } from "../lib/auth.js";
 import { paystack, validSignature } from "../lib/paystack.js";
 import { env } from "../lib/env.js";
-import { sendMail, simpleEmail } from "../lib/mail.js";
+import { paymentFailedEmail, sendMail, subscriptionEmail } from "../lib/mail.js";
 
 const r = Router();
 
@@ -71,7 +71,7 @@ export const webhook = [express.raw({ type: "application/json" }), h(async (req,
     const sub = (await latest()) ?? new Subscription({ brand: user._id, plan: plan?._id });
     Object.assign(sub, { status: "active", paystackCode: data.subscription_code, emailToken: data.email_token, customerCode: data.customer.customer_code, nextPaymentDate: data.next_payment_date });
     await sub.save();
-    sendMail(user.email, "Your Outsider plan is active", simpleEmail("You're subscribed", `Your ${plan?.name ?? ""} plan is active. Thanks for growing with Outsider.`)).catch(() => {});
+    sendMail(user.email, "Your Outsider plan is active", subscriptionEmail(plan?.name ?? "Outsider")).catch(() => {});
   } else if (event === "charge.success" && plan) {
     const sub = await latest();
     if (sub && sub.status !== "cancelled") { sub.status = "active"; await sub.save(); }
@@ -79,7 +79,7 @@ export const webhook = [express.raw({ type: "application/json" }), h(async (req,
     await Subscription.updateOne({ paystackCode: data.subscription_code }, { status: event === "subscription.disable" ? "cancelled" : "non-renewing" });
   } else if (event === "invoice.payment_failed") {
     await Subscription.updateOne({ paystackCode: data.subscription?.subscription_code }, { status: "past_due" });
-    sendMail(user.email, "Payment failed", simpleEmail("We couldn't renew your plan", "Update your card in billing to keep your plan active.")).catch(() => {});
+    sendMail(user.email, "Payment failed", paymentFailedEmail()).catch(() => {});
   }
   res.sendStatus(200);
 })];

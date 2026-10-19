@@ -16,4 +16,5 @@ export const env = {
   paystackKey: process.env.PAYSTACK_SECRET_KEY,
   googleId: process.env.GOOGLE_CLIENT_ID,
   googleSecret: process.env.GOOGLE_CLIENT_SECRET,
+  cloudinary: { cloud: process.env.CLOUDINARY_CLOUD_NAME, key: process.env.CLOUDINARY_API_KEY, secret: process.env.CLOUDINARY_API_SECRET },
 };

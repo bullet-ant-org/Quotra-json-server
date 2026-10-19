@@ -5,6 +5,7 @@ import { bad, h, notFound } from "../lib/http.js";
 import { requireRole } from "../lib/auth.js";
 import { moveTokens, tx } from "../lib/ledger.js";
 import { notify } from "../lib/notify.js";
+import { placeStatusEmail, sendMail } from "../lib/mail.js";
 
 const r = Router();
 r.use(requireRole("admin"));
@@ -72,6 +73,7 @@ r.patch("/places/:id", h(async (req, res) => {
   const d = z.object({ status: z.enum(["live", "rejected", "closed", "pending"]).optional(), verified: z.boolean().optional(), checkInTokens: z.number().int().min(0).max(500).optional() }).parse(req.body);
   const p = await Place.findByIdAndUpdate(req.params.id, d, { returnDocument: "after" });
   if (!p) throw notFound();
+  if (d.status && p.owner) User.findById(p.owner).select("email").then((o) => o && sendMail(o.email, `${p.name}: ${d.status}`, placeStatusEmail(p.name, d.status))).catch(() => {});
   if (d.status && p.owner) notify(p.owner, "business", `${p.name} is now ${d.status}`, "/brand/places");
   res.json({ place: p });
 }));

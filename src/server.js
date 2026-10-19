@@ -1,4 +1,7 @@
 import express from "express";
+import http from "node:http";
+import { attach } from "./lib/realtime.js";
+import uploads from "./routes/uploads.js";
 import mongoose from "mongoose";
 import cors from "cors";
 import helmet from "helmet";
@@ -33,6 +36,7 @@ app.use("/v1", rewards);
 app.use("/v1/brand", brand);
 app.use("/v1/admin", admin);
 app.use("/v1/billing", billing);
+app.use("/v1/uploads", uploads);
 app.use("/v1", messages);
 app.use("/v1", social);
 app.use((_req, res) => res.status(404).json({ message: "Not found" }));
@@ -40,4 +44,6 @@ app.use(errorHandler);
 
 await mongoose.connect(env.mongo);
 await mongoose.syncIndexes();
-app.listen(env.port, () => console.log(`Outsider API on :${env.port}`));
+const server = http.createServer(app);
+attach(server);
+server.listen(env.port, () => console.log(`Outsider API on :${env.port}`));

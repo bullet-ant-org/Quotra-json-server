@@ -3,7 +3,7 @@ import { z } from "zod";
 import { Conversation, Message, Notification, User, oid } from "../models/index.js";
 import { bad, forbidden, h, notFound } from "../lib/http.js";
 import { requireAuth } from "../lib/auth.js";
-import { notify } from "../lib/notify.js";
+import { emitTo } from "../lib/realtime.js";
 
 const r = Router();
 r.use(requireAuth);
@@ -46,7 +46,7 @@ r.post("/conversations/:id/messages", h(async (req, res) => {
   const { text } = z.object({ text: z.string().trim().min(1).max(4000) }).parse(req.body);
   const m = await Message.create({ conversation: c._id, from: req.user._id, text, readBy: [req.user._id] });
   await Conversation.updateOne({ _id: c._id }, { lastText: text.slice(0, 120), lastAt: m.createdAt });
-  c.members.filter((x) => !x.equals(req.user._id)).forEach((x) => notify(x, "message", `@${req.user.username}: ${text.slice(0, 60)}`, `/messages/${c.id}`));
+  emitTo(c.members, "message", { conversationId: c.id, message: m });
   res.status(201).json({ message: m });
 }));
 

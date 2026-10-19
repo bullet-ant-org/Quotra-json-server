@@ -4,6 +4,7 @@ import { bad, h, notFound } from "../lib/http.js";
 import { requireAuth, requireRole } from "../lib/auth.js";
 import { moveTokens, tx } from "../lib/ledger.js";
 import { notify } from "../lib/notify.js";
+import { passEmail, reservationEmail, sendMail } from "../lib/mail.js";
 
 const r = Router();
 const today = () => { const d = new Date(); d.setUTCHours(0, 0, 0, 0); return d; };
@@ -28,6 +29,8 @@ r.post("/passes/:id/claim", requireAuth, h(async (req, res) => {
     await moveTokens(s, me, -p.perPerson, "pass", `Claimed: ${p.title}`, `pass:${p._id}:${me}`);
     return p;
   });
+  const place = (await pass.populate("place", "name")).place?.name ?? "";
+  sendMail(req.user.email, `Your pass: ${pass.title}`, passEmail(pass.title, place, `PASS-${pass.id}-${me}`)).catch(() => {});
   res.json({ ok: true, code: `PASS-${pass.id}-${me}` });
 }));
 
@@ -52,6 +55,7 @@ r.post("/events/:id/reserve", requireAuth, h(async (req, res) => {
     return e;
   });
   notify(me, "reward", `You're in for ${ev.title}. Show your QR code at the door.`, "/events");
+  sendMail(req.user.email, `Reserved: ${ev.title}`, reservationEmail(ev.title, ev.date, `OUT-${ev.id}-${me}`)).catch(() => {});
   res.json({ ok: true, code: `OUT-${ev.id}-${me}` });
 }));
 

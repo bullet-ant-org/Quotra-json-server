@@ -6,7 +6,7 @@ import { z } from "zod";
 import { Otp, User } from "../models/index.js";
 import { bad, h, HttpError } from "../lib/http.js";
 import { clearSession, setSession } from "../lib/auth.js";
-import { otpEmail, sendMail } from "../lib/mail.js";
+import { otpEmail, sendMail, welcomeEmail } from "../lib/mail.js";
 import { env } from "../lib/env.js";
 import { moveTokens, tx } from "../lib/ledger.js";
 
@@ -36,7 +36,7 @@ async function createUser(data) {
     const [u] = await User.create([{ ...data, emailVerified: true }], { session: s });
     await moveTokens(s, u._id, WELCOME, "bonus", "Welcome bonus", `welcome:${u._id}`);
     return u;
-  });
+  }).then((u) => { sendMail(u.email, "Welcome to Outsider", welcomeEmail(u.firstName)).catch(() => {}); return u; });
 }
 
 r.get("/me", (req, res) => res.json({ user: req.user ?? null }));

@@ -4,6 +4,7 @@ import { Ad, CheckIn, Event, Pass, Place, Subscription, VisitRequest } from "../
 import { bad, forbidden, h, notFound } from "../lib/http.js";
 import { requireAuth, requireRole } from "../lib/auth.js";
 import { notify } from "../lib/notify.js";
+import { sendMail, visitStatusEmail } from "../lib/mail.js";
 
 const r = Router();
 const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60);
@@ -78,6 +79,7 @@ r.patch("/requests/:id", h(async (req, res) => {
   const { status } = z.object({ status: z.enum(["accepted", "declined"]) }).parse(req.body);
   const v = await VisitRequest.findOneAndUpdate({ _id: req.params.id, brand: req.user._id }, { status }, { returnDocument: "after" }).populate("place", "name");
   if (!v) throw notFound();
+  v.populate("from", "email").then((x) => sendMail(x.from.email, `Visit ${status}`, visitStatusEmail(v.place?.name ?? "The place", status))).catch(() => {});
   notify(v.from, "business", `${v.place?.name ?? "The place"} ${status} your visit request`, "/messages");
   res.json({ request: v });
 }));
