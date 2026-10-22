@@ -73,8 +73,11 @@ r.post("/posts/:id/share", h(async (req, res) => { await Post.updateOne({ _id: r
 // Newest first, 10 at a time: GET /posts/:id/comments?skip=0&limit=10
 r.get("/posts/:id/comments", h(async (req, res) => {
   const skip = Math.max(0, +(req.query.skip ?? 0)), limit = Math.min(30, +(req.query.limit ?? 10));
-  const p = await Post.findById(req.params.id, { comments: { $slice: [-(skip + limit), limit] }, commentCount: 1 }).populate("comments.author", pub);
-  if (!p) throw notFound();
+  const meta = await Post.findById(req.params.id, { commentCount: 1 });
+  if (!meta) throw notFound();
+  const take = Math.min(limit, meta.commentCount - skip);
+  if (take <= 0) return res.json({ items: [], total: meta.commentCount });
+  const p = await Post.findById(req.params.id, { comments: { $slice: [meta.commentCount - skip - take, take] }, commentCount: 1 }).populate("comments.author", pub);
   res.json({ items: p.comments.reverse().map((c) => ({ id: c._id, text: c.text, at: c.at, author: c.author })), total: p.commentCount });
 }));
 
