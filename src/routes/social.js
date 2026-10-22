@@ -9,7 +9,8 @@ const r = Router();
 r.use(requireAuth);
 const pub = "firstName lastName username avatar role";
 const mediaZ = z.array(z.object({ type: z.enum(["image", "video"]), src: z.string().url().max(2048) })).max(20).default([]);
-const populate = (q) => q.populate("author", pub).populate("tags", pub).populate("place", "slug name city").populate("comments.author", pub);
+// Lists never ship comments; they are paged separately when someone opens them.
+const populate = (q) => q.select("-comments").populate("author", pub).populate("tags", pub).populate("place", "slug name city");
 
 // Feed: people you follow + you, newest first, blocked authors removed.
 r.get("/feed", h(async (req, res) => {
@@ -58,15 +59,24 @@ r.post("/posts/:id/like", h(async (req, res) => {
 
 r.post("/posts/:id/comments", h(async (req, res) => {
   const { text } = z.object({ text: z.string().trim().min(1).max(2000) }).parse(req.body);
-  const p = await Post.findByIdAndUpdate(req.params.id, { $push: { comments: { author: req.user._id, text } } }, { returnDocument: "after" });
+  const p = await Post.findByIdAndUpdate(req.params.id, { $push: { comments: { author: req.user._id, text } }, $inc: { commentCount: 1 } }, { returnDocument: "after" });
   if (!p) throw notFound();
   if (!p.author.equals(req.user._id)) notify(p.author, "social", `@${req.user.username} commented: ${text.slice(0, 60)}`, `/home#${p.id}`);
-  res.status(201).json({ comments: (await populate(Post.findById(p._id))).comments });
+  const c = p.comments.at(-1);
+  res.status(201).json({ comment: { id: c._id, text: c.text, at: c.at, author: { id: req.user.id, firstName: req.user.firstName, lastName: req.user.lastName, username: req.user.username, avatar: req.user.avatar } } });
 }));
 
 // Lightweight counters; the client sends one view per post per session.
 r.post("/posts/:id/view", h(async (req, res) => { await Post.updateOne({ _id: req.params.id }, { $inc: { views: 1 } }); res.json({ ok: true }); }));
 r.post("/posts/:id/share", h(async (req, res) => { await Post.updateOne({ _id: req.params.id }, { $inc: { shares: 1 } }); res.json({ ok: true }); }));
+
+// Newest first, 10 at a time: GET /posts/:id/comments?skip=0&limit=10
+r.get("/posts/:id/comments", h(async (req, res) => {
+  const skip = Math.max(0, +(req.query.skip ?? 0)), limit = Math.min(30, +(req.query.limit ?? 10));
+  const p = await Post.findById(req.params.id, { comments: { $slice: [-(skip + limit), limit] }, commentCount: 1 }).populate("comments.author", pub);
+  if (!p) throw notFound();
+  res.json({ items: p.comments.reverse().map((c) => ({ id: c._id, text: c.text, at: c.at, author: c.author })), total: p.commentCount });
+}));
 
 r.post("/posts/:id/repost", h(async (req, res) => {
   const o = await Post.findByIdAndUpdate(req.params.id, { $inc: { reposts: 1 } });

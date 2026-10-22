@@ -43,7 +43,7 @@ const media = new Schema({ type: { type: String, enum: ["image", "video"] }, src
 export const Post = model("Post", new Schema({
   author: id("User"), text: { type: String, maxlength: 5000 }, media: [media],
   place: id("Place"), tags: [id("User")], hashtags: { type: [String], index: true },
-  likes: [id("User")], reposts: { type: Number, default: 0 }, views: { type: Number, default: 0 }, shares: { type: Number, default: 0 }, saves: { type: Number, default: 0 }, repostOf: id("Post"),
+  likes: [id("User")], reposts: { type: Number, default: 0 }, views: { type: Number, default: 0 }, commentCount: { type: Number, default: 0 }, shares: { type: Number, default: 0 }, saves: { type: Number, default: 0 }, repostOf: id("Post"),
   comments: [{ author: id("User"), text: String, at: { type: Date, default: Date.now } }],
   party: { date: Date, max: Number, going: [id("User")] },
   sponsored: { type: Boolean, default: false }, removed: { type: Boolean, default: false },
