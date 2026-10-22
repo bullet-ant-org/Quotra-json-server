@@ -1,7 +1,8 @@
+import { vsrc } from "../../lib/media";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bookmark, Heart, MapPin, MessageCircle, Send } from "lucide-react";
-import { actions, person, useStore } from "../../lib/store";
+import { actions, person, useStore , commentCount } from "../../lib/store";
 import { bySlug } from "../../fixtures/destinations";
 import { useTitle } from "../../lib/useTitle";
 
@@ -29,7 +30,7 @@ export default function Reels() {
         return (
           <section key={key} data-i={i} className="relative mx-auto h-full max-w-md snap-start overflow-hidden">
             {!near ? <div className="size-full animate-pulse bg-white/5" />
-              : m.type === "video" ? <video src={m.src} autoPlay={now} loop muted playsInline preload={now ? "auto" : "metadata"} ref={(v) => { if (v) (now ? v.play().catch(() => {}) : v.pause()); }} className="size-full object-cover" />
+              : m.type === "video" ? <video src={vsrc(m.src)} autoPlay={now} loop muted playsInline preload={now ? "auto" : "metadata"} ref={(v) => { if (v) (now ? v.play().catch(() => {}) : v.pause()); }} className="size-full object-cover" />
               : <img src={m.src} alt="" loading={now ? "eager" : "lazy"} fetchPriority={now ? "high" : "low"} decoding="async" className={`size-full object-cover ${now ? "motion-safe:animate-[kenburns_14s_ease-in-out_infinite_alternate]" : ""}`} />}
             <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80" />
             <div className="absolute bottom-24 left-4 right-20 text-white lg:bottom-8">
@@ -40,7 +41,7 @@ export default function Reels() {
             </div>
             <div className="absolute bottom-24 right-3 flex flex-col items-center gap-5 text-white lg:bottom-8">
               <button onClick={() => actions.toggleLike(post.id)} className="flex flex-col items-center text-xs font-bold" aria-pressed={liked}><Heart className={`size-8 ${liked ? "fill-accent text-accent" : ""}`} />{post.likes.length}</button>
-              <Link to="/home" className="flex flex-col items-center text-xs font-bold"><MessageCircle className="size-8" />{post.comments.length}</Link>
+              <Link to="/home" className="flex flex-col items-center text-xs font-bold"><MessageCircle className="size-8" />{commentCount(post)}</Link>
               <button onClick={() => setSaved((x) => { const n = new Set(x); n.has(key) ? n.delete(key) : n.add(key); return n; })} className="flex flex-col items-center text-xs font-bold"><Bookmark className={`size-8 ${saved.has(key) ? "fill-white" : ""}`} />Save</button>
               <button onClick={async () => { try { await navigator.share?.({ text: post.text }); } catch { /* */ } }} className="flex flex-col items-center text-xs font-bold"><Send className="size-8" />Share</button>
             </div>

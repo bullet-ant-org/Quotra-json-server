@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 const fmtN = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}k` : String(n));
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, Bookmark, Heart, MessageCircle, MoreHorizontal, Send, Ticket, Users } from "lucide-react";
-import { actions, ago, person, useStore, type Post } from "../../lib/store";
+import { actions, ago, person, useStore, type Post , commentCount } from "../../lib/store";
 import { bySlug } from "../../fixtures/destinations";
 import { MediaGrid } from "./MediaGrid";
 import { CommentsSheet } from "./CommentsSheet";
@@ -72,11 +72,11 @@ export function PostCard({ post, onVisible, priority = false }: { post: Post; on
       <div className="space-y-1 px-3.5 pb-3 text-sm">
         {post.likes.length > 0 && <p className="font-bold">{post.likes.length === 1 ? `Liked by ${person(s, post.likes[0]).username}` : `Liked by ${person(s, post.likes[0]).username} and ${post.likes.length - 1} others`}</p>}
         {post.text && post.media.length > 0 && <p><Link to={profileLink} className="mr-1.5 font-bold">{a.username}</Link><RichText text={post.text} /></p>}
-        {post.comments.length > 0 && <button onClick={() => setSheet("comments")} className="text-muted">View all {post.comments.length} comments</button>}
+        {commentCount(post) > 0 && <button onClick={() => setSheet("comments")} className="text-muted">View all {commentCount(post)} comments</button>}
         <p className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5 text-xs text-muted" aria-label="Post stats">
           <span className="inline-flex items-center gap-1"><Eye className="size-3.5" />{fmtN(post.views ?? 0)}</span>
           <span className="inline-flex items-center gap-1"><Heart className="size-3.5" />{fmtN(post.likes.length)}</span>
-          <span className="inline-flex items-center gap-1"><MessageCircle className="size-3.5" />{fmtN(post.comments.length)}</span>
+          <span className="inline-flex items-center gap-1"><MessageCircle className="size-3.5" />{fmtN(commentCount(post))}</span>
           <span className="inline-flex items-center gap-1"><Bookmark className="size-3.5" />{fmtN(post.saves ?? 0)}</span>
           <span className="inline-flex items-center gap-1"><Send className="size-3.5" />{fmtN((post.shares ?? 0) + post.reposts)}</span>
           <span className="ml-auto uppercase tracking-wide">{ago(post.at)} ago</span>

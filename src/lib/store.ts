@@ -8,7 +8,7 @@ export interface Person { id: string; name: string; username: string; avatar: st
 export interface Media { type: "image" | "video"; src: string }
 export interface Comment { id: string; authorId: string; text: string; at: number; likes?: string[] }
 export interface Party { date: string; max: number; going: string[] }
-export interface Post { id: string; authorId: string; text: string; media: Media[]; place?: string; tags: string[]; likes: string[]; comments: Comment[]; reposts: number; at: number; party?: Party; views?: number; shares?: number; saves?: number }
+export interface Post { id: string; authorId: string; text: string; media: Media[]; place?: string; tags: string[]; likes: string[]; comments: Comment[]; reposts: number; at: number; party?: Party; views?: number; shares?: number; saves?: number; commentCount?: number }
 export interface Story { id: string; authorId: string; src: string; at: number }
 export interface Highlight { id: string; name: string; cover: string; items: string[] }
 export interface Pass { id: string; place: string; title: string; perPerson: number; budget: number; date: string; claimed: string[]; active: boolean }
@@ -144,6 +144,7 @@ export function useStore<T>(sel: (s: State) => T): T {
 }
 export const uid = () => Math.random().toString(36).slice(2, 9);
 export const person = (s: State, id: string): Person => s.people.find((p) => p.id === id) ?? { id, name: "Outsider", username: id, avatar: photo(PH.p4, 200), following: false };
+export const commentCount = (p: Post) => p.commentCount ?? p.comments.length;
 export const passSlots = (p: Pass) => Math.floor(p.budget / p.perPerson);
 
 const msg = (from: string, m: Omit<ChatMsg, "id" | "from" | "at">): ChatMsg => ({ id: uid(), from, at: Date.now(), ...m });

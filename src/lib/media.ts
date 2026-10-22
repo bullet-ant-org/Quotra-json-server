@@ -1,4 +1,6 @@
 // Stock photos (Unsplash) used for sample content. Components fall back to drawn art on error.
+// Cloudinary videos get auto quality/format (web-optimised, starts playing before fully downloaded).
+export const vsrc = (src: string) => (/res\.cloudinary\.com\/.+\/video\/upload\/(?!q_auto)/.test(src) ? src.replace("/video/upload/", "/video/upload/q_auto,f_auto/") : src);
 export const photo = (id: string, w = 900) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=70`;
 
 export const PH = {

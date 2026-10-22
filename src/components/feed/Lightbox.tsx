@@ -1,7 +1,8 @@
+import { vsrc } from "../../lib/media";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Bookmark, ChevronLeft, ChevronRight, Heart, MessageCircle, Send, X } from "lucide-react";
-import { actions, ago, person, useStore, type Media } from "../../lib/store";
+import { actions, ago, person, useStore, type Media , commentCount } from "../../lib/store";
 import { useScrollLock } from "../../lib/useScrollLock";
 import { CommentsList, CommentsSheet } from "./CommentsSheet";
 import { ShareSheet } from "./ShareSheet";
@@ -36,7 +37,7 @@ export function Lightbox({ media, start, onClose, postId }: { media: Media[]; st
           <button onClick={onClose} className="grid size-10 place-items-center rounded-full bg-white/15 backdrop-blur" aria-label="Close"><X className="size-5" /></button>
         </header>
         <div className="relative flex flex-1 items-center justify-center overflow-hidden">
-          {m.type === "video" ? <video key={m.src} src={m.src} controls autoPlay playsInline className="max-h-full max-w-full" /> : <img key={m.src} src={m.src} alt="" className="max-h-full max-w-full object-contain" />}
+          {m.type === "video" ? <video key={m.src} src={vsrc(m.src)} preload="metadata" controls autoPlay playsInline className="max-h-full max-w-full" /> : <img key={m.src} src={m.src} alt="" className="max-h-full max-w-full object-contain" />}
           {media.length > 1 && <>
             <button onClick={() => go(-1)} className="absolute left-3 hidden size-10 place-items-center rounded-full bg-white/80 text-black sm:grid" aria-label="Previous"><ChevronLeft /></button>
             <button onClick={() => go(1)} className="absolute right-3 hidden size-10 place-items-center rounded-full bg-white/80 text-black sm:grid" aria-label="Next"><ChevronRight /></button>
@@ -53,7 +54,7 @@ export function Lightbox({ media, start, onClose, postId }: { media: Media[]; st
             </div>
             <p className="px-1 text-sm font-semibold">{post.likes.length} likes</p>
             {post.text && <p className="line-clamp-2 px-1 text-sm"><b>{a!.username}</b> {post.text}</p>}
-            <button onClick={() => setSheet("comments")} className="px-1 text-sm opacity-75">{post.comments.length ? `View all ${post.comments.length} comments` : "Add a comment…"}</button>
+            <button onClick={() => setSheet("comments")} className="px-1 text-sm opacity-75">{commentCount(post) ? `View all ${commentCount(post)} comments` : "Add a comment…"}</button>
           </footer>
         )}
       </div>

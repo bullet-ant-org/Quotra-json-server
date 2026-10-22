@@ -23,7 +23,7 @@ function addPeople(s: State, list: A[]) {
 }
 const mapPost = (p: A) => ({
   id: p.id, authorId: p.author?.id, text: p.text ?? "", media: (p.media ?? []) as Media[], place: p.place?.slug, tags: (p.tags ?? []).map((t: A) => t.id),
-  likes: (p.likes ?? []).map(String), views: p.views ?? 0, shares: p.shares ?? 0, saves: p.saves ?? 0, comments: (p.comments ?? []).map((c: A) => ({ id: c._id ?? c.id, authorId: c.author?.id, text: c.text, at: ts(c.at) })),
+  likes: (p.likes ?? []).map(String), commentCount: p.commentCount ?? 0, views: p.views ?? 0, shares: p.shares ?? 0, saves: p.saves ?? 0, comments: (p.comments ?? []).map((c: A) => ({ id: c._id ?? c.id, authorId: c.author?.id, text: c.text, at: ts(c.at) })),
   reposts: p.reposts ?? 0, at: ts(p.createdAt), party: p.party?.max ? { date: day(p.party.date), max: p.party.max, going: (p.party.going ?? []).map(String) } : undefined,
 });
 const mapPass = (p: A) => ({ id: p.id, place: p.place?.slug ?? "", title: p.title, perPerson: p.perPerson, budget: p.budget, date: day(p.date), claimed: (p.claimed ?? []).map(String), active: p.active });

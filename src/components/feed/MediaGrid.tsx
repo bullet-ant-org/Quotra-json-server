@@ -1,3 +1,4 @@
+import { vsrc } from "../../lib/media";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Clapperboard, Copy } from "lucide-react";
@@ -29,7 +30,7 @@ export function MediaGrid({ media, postId, priority = false }: { media: Media[];
       onTouchEnd={(e) => { const d = e.changedTouches[0].clientX - x0.current; if (Math.abs(d) > 40) setI((x) => (x + (d < 0 ? 1 : -1) + n) % n); }}>
       <AnimatePresence initial={false}>
         <motion.button key={i} onClick={() => setOpen(true)} initial={{ opacity: 0, scale: 1.03 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.6 }} className="absolute inset-0" aria-label="Open media">
-          {m.type === "video" ? <video src={m.src} autoPlay muted loop playsInline className="size-full object-cover" onEnded={() => setI((x) => (x + 1) % n)} /> : <img src={m.src} alt="" loading={priority && i === 0 ? "eager" : "lazy"} fetchPriority={priority && i === 0 ? "high" : "auto"} decoding="async" className="size-full object-cover" />}
+          {m.type === "video" ? <video src={vsrc(m.src)} preload="metadata" autoPlay muted loop playsInline className="size-full object-cover" onEnded={() => setI((x) => (x + 1) % n)} /> : <img src={m.src} alt="" loading={priority && i === 0 ? "eager" : "lazy"} fetchPriority={priority && i === 0 ? "high" : "auto"} decoding="async" className="size-full object-cover" />}
         </motion.button>
       </AnimatePresence>
       <MediaBadge media={media} />
