@@ -82,7 +82,7 @@ export default function Profile() {
             <button onClick={() => navigator.clipboard?.writeText(`${location.origin}/u/${p.username}`).catch(() => {})} className="rounded-lg bg-surface py-2 text-sm font-bold hover:bg-surface-2">Share profile</button>
           </> : <>
             <button onClick={() => actions.follow(p.id)} className={`rounded-lg py-2 text-sm font-bold ${p.following ? "bg-surface" : "bg-accent text-accent-ink"}`}>{p.following ? "Following" : "Follow"}</button>
-            <button onClick={async () => { if (!LIVE) return nav("/messages/c1"); try { const r = await post<{ conversation: { id: string } }>("/conversations", { members: [p.id] }); nav(`/messages/${r.conversation.id}`); } catch (e) { alert((e as Error).message); } }} className="rounded-lg bg-surface py-2 text-sm font-bold">Message</button>
+            <button onClick={async () => { if (!LIVE) return nav(`/messages/${actions.openChat(p.id)}`); try { const r = await post<{ conversation: { id: string } }>("/conversations", { members: [p.id] }); nav(`/messages/${r.conversation.id}`); } catch (e) { alert((e as Error).message); } }} className="rounded-lg bg-surface py-2 text-sm font-bold">Message</button>
             <button onClick={() => (blocked ? actions.unblock(p.id) : actions.block(p.id))} className="col-span-2 text-xs font-semibold text-red-600">{blocked ? "Unblock" : "Block"} @{p.username}</button>
           </>}
         </div>

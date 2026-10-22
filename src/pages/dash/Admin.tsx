@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Route, Routes } from "react-router-dom";
-import { CalendarDays, Flag, LayoutDashboard, MapPinned, Megaphone, Ticket, Users } from "lucide-react";
+import { CalendarDays, Flag, Sun, LayoutDashboard, MapPinned, Megaphone, Ticket, Users } from "lucide-react";
 import { actions, passSlots, useStore } from "../../lib/store";
 import { destinations, destPhoto, bySlug, formatNaira } from "../../fixtures/destinations";
 import { Badge, Bars, btn, btn2, Card, inputCls, Shell, Stat } from "./Shell";
@@ -9,6 +9,7 @@ import { useTitle } from "../../lib/useTitle";
 const nav = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/admin/passes", label: "Token passes", icon: Ticket },
+  { to: "/admin/bounties", label: "Bounties", icon: Sun },
   { to: "/admin/events", label: "Events", icon: CalendarDays },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/places", label: "Places & brands", icon: MapPinned },
@@ -80,12 +81,44 @@ function Passes() {
   );
 }
 
+function Bounties() {
+  const s = useStore((x) => x);
+  const blank = { id: "", title: "Summer Outsider Bounty", description: "Check in and post to claim the top reward of the season.", reward: 300, starts: new Date().toISOString().slice(0, 10), ends: new Date(Date.now() + 60 * 864e5).toISOString().slice(0, 10), active: true };
+  const [f, setF] = useState(blank);
+  const set = (k: keyof typeof blank, v: string | number | boolean) => setF({ ...f, [k]: v });
+  return (
+    <div className="grid gap-5 xl:grid-cols-[24rem_1fr]">
+      <Card className="h-fit space-y-3">
+        <h2 className="font-display text-lg font-bold">{f.id ? "Edit bounty" : "New seasonal bounty"}</h2>
+        <p className="text-sm text-muted">Shows at the very top of everyone's tokens page while it's active and inside its dates.</p>
+        <label className="block space-y-1 text-sm font-semibold">Title<input value={f.title} onChange={(e) => set("title", e.target.value)} className={inputCls} /></label>
+        <label className="block space-y-1 text-sm font-semibold">Details<textarea rows={3} value={f.description} onChange={(e) => set("description", e.target.value)} className={inputCls} /></label>
+        <label className="block space-y-1 text-sm font-semibold">Reward (tokens)<input type="number" min={1} value={f.reward} onChange={(e) => set("reward", +e.target.value)} className={inputCls} /></label>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="space-y-1 text-sm font-semibold">Starts<input type="date" value={f.starts} onChange={(e) => set("starts", e.target.value)} className={inputCls} /></label>
+          <label className="space-y-1 text-sm font-semibold">Ends<input type="date" value={f.ends} onChange={(e) => set("ends", e.target.value)} className={inputCls} /></label>
+        </div>
+        <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={f.active} onChange={(e) => set("active", e.target.checked)} className="size-4 accent-[var(--c-accent)]" />Active</label>
+        <button onClick={() => { actions.saveBounty({ ...f, id: f.id || Math.random().toString(36).slice(2, 9) }); setF(blank); }} className={`${btn} w-full`}>{f.id ? "Save changes" : "Publish bounty"}</button>
+      </Card>
+      <div className="space-y-3">{(s.bounties ?? []).map((b) => (
+        <Card key={b.id} className="flex flex-wrap items-center gap-4">
+          <Sun className="size-8 text-accent" />
+          <div className="min-w-0 flex-1"><p className="font-bold">{b.title}</p><p className="text-sm text-muted">{b.starts} → {b.ends} · +{b.reward} tokens</p></div>
+          <Badge tone={b.active ? "ok" : "muted"}>{b.active ? "Active" : "Off"}</Badge>
+          <button onClick={() => setF(b)} className={btn2}>Edit</button>
+        </Card>
+      ))}</div>
+    </div>
+  );
+}
+
 function EventsAdmin() {
   const s = useStore((x) => x);
-  const [draft, setDraft] = useState<Record<string, { slots: number; cost: number }>>({});
+  const [draft, setDraft] = useState<Record<string, { slots: number; cost: number; max: number; desc: string }>>({});
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {s.events.map((e) => { const d = draft[e.id] ?? { slots: e.slots ?? 20, cost: e.tokenCost ?? 150 }; return (
+      {s.events.map((e) => { const d = draft[e.id] ?? { slots: e.slots ?? 20, cost: e.tokenCost ?? 150, max: e.maxSpend ?? 10000, desc: e.description ?? "" }; return (
         <Card key={e.id} className="space-y-3 p-0">
           <div className="relative h-36 overflow-hidden rounded-t-3xl"><img src={e.img} alt="" className="size-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-bg to-transparent" /></div>
           <div className="space-y-3 px-5 pb-5">
@@ -94,8 +127,10 @@ function EventsAdmin() {
             <div className="grid grid-cols-2 gap-2">
               <label className="space-y-1 text-xs font-semibold">Token spots<input type="number" min={1} value={d.slots} onChange={(ev) => setDraft({ ...draft, [e.id]: { ...d, slots: +ev.target.value } })} className={inputCls} /></label>
               <label className="space-y-1 text-xs font-semibold">Tokens each<input type="number" min={1} value={d.cost} onChange={(ev) => setDraft({ ...draft, [e.id]: { ...d, cost: +ev.target.value } })} className={inputCls} /></label>
+              <label className="col-span-2 space-y-1 text-xs font-semibold">Max spend per person (₦)<input type="number" min={0} value={d.max} onChange={(ev) => setDraft({ ...draft, [e.id]: { ...d, max: +ev.target.value } })} className={inputCls} /></label>
+              <label className="col-span-2 space-y-1 text-xs font-semibold">Ticket details<textarea rows={2} value={d.desc} onChange={(ev) => setDraft({ ...draft, [e.id]: { ...d, desc: ev.target.value } })} className={inputCls} /></label>
             </div>
-            <button onClick={() => actions.sponsorEvent(e.id, d.slots, d.cost)} className={`${btn} w-full`}>{e.slots ? "Update sponsorship" : "Sponsor this event"}</button>
+            <button onClick={() => actions.sponsorEvent(e.id, d.slots, d.cost, d.max, d.desc)} className={`${btn} w-full`}>{e.slots ? "Update sponsorship" : "Sponsor this event"}</button>
           </div>
         </Card>
       ); })}
@@ -176,6 +211,7 @@ export default function Admin() {
     <Shell title="Admin" nav={nav}>
       <Routes>
         <Route index element={<Overview />} /><Route path="passes" element={<Passes />} /><Route path="events" element={<EventsAdmin />} />
+        <Route path="bounties" element={<Bounties />} />
         <Route path="users" element={<UsersAdmin />} /><Route path="places" element={<PlacesAdmin />} /><Route path="ads" element={<AdsAdmin />} /><Route path="reports" element={<Reports />} />
       </Routes>
     </Shell>

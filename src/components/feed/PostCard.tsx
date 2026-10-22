@@ -1,9 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Bookmark, Heart, MessageCircle, MoreHorizontal, Send, Ticket, Users } from "lucide-react";
 import { actions, ago, person, useStore, type Post } from "../../lib/store";
 import { bySlug } from "../../fixtures/destinations";
 import { MediaGrid } from "./MediaGrid";
+import { CommentsSheet } from "./CommentsSheet";
+import { ShareSheet } from "./ShareSheet";
 import { LIVE } from "../../lib/store";
 
 function RichText({ text }: { text: string }) {
@@ -15,15 +17,13 @@ export function PostCard({ post }: { post: Post }) {
   const s = useStore((x) => x);
   const a = person(s, post.authorId);
   const liked = post.likes.includes(s.me);
-  const [showC, setShowC] = useState(false);
-  const [c, setC] = useState("");
   const [menu, setMenu] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const saved = !!s.saved?.includes(post.id);
+  const [sheet, setSheet] = useState<null | "comments" | "share">(null);
   const [toast, setToast] = useState<string | null>(null);
   const place = post.place ? bySlug(post.place) : undefined;
   const going = post.party?.going.includes(s.me);
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2200); };
-  const send = (e: FormEvent) => { e.preventDefault(); if (c.trim()) { actions.comment(post.id, c.trim()); setC(""); } };
   const profileLink = a.id === s.me ? "/profile" : `/u/${a.username}`;
 
   return (
@@ -48,21 +48,21 @@ export function PostCard({ post }: { post: Post }) {
         </div>
       </header>
 
-      {post.media.length ? <div onDoubleClick={() => !liked && actions.toggleLike(post.id)}><MediaGrid media={post.media} /></div>
+      {post.media.length ? <div onDoubleClick={() => !liked && actions.toggleLike(post.id)}><MediaGrid media={post.media} postId={post.id} /></div>
         : <p className="bg-gradient-to-br from-accent to-accent-text px-6 py-16 text-center font-display text-2xl font-bold text-white"><RichText text={post.text} /></p>}
 
       <div className="flex items-center gap-1 px-2 pt-1.5">
         <button onClick={() => actions.toggleLike(post.id)} className="grid size-10 place-items-center" aria-pressed={liked} aria-label="Like"><Heart className={`size-[26px] transition-transform active:scale-125 ${liked ? "fill-red-500 text-red-500" : ""}`} /></button>
-        <button onClick={() => setShowC(!showC)} className="grid size-10 place-items-center" aria-label="Comment"><MessageCircle className="size-[26px] -scale-x-100" /></button>
-        <button onClick={async () => { try { await navigator.share?.({ text: post.text, url: location.href }); } catch { /* cancelled */ } }} className="grid size-10 place-items-center" aria-label="Share"><Send className="size-[24px]" /></button>
+        <button onClick={() => setSheet("comments")} className="grid size-10 place-items-center" aria-label="Comment"><MessageCircle className="size-[26px] -scale-x-100" /></button>
+        <button onClick={() => setSheet("share")} className="grid size-10 place-items-center" aria-label="Share"><Send className="size-[24px]" /></button>
         {place && <button onClick={() => nav(`/destinations/${place.slug}`)} className="ml-1 inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-accent-ink"><Ticket className="size-3.5" />Book</button>}
-        <button onClick={() => setSaved(!saved)} className="ml-auto grid size-10 place-items-center" aria-pressed={saved} aria-label="Save"><Bookmark className={`size-[24px] ${saved ? "fill-ink" : ""}`} /></button>
+        <button onClick={() => actions.toggleSave(post.id)} className="ml-auto grid size-10 place-items-center" aria-pressed={saved} aria-label="Save"><Bookmark className={`size-[24px] ${saved ? "fill-ink" : ""}`} /></button>
       </div>
 
       <div className="space-y-1 px-3.5 pb-3 text-sm">
         {post.likes.length > 0 && <p className="font-bold">{post.likes.length === 1 ? `Liked by ${person(s, post.likes[0]).username}` : `Liked by ${person(s, post.likes[0]).username} and ${post.likes.length - 1} others`}</p>}
         {post.text && post.media.length > 0 && <p><Link to={profileLink} className="mr-1.5 font-bold">{a.username}</Link><RichText text={post.text} /></p>}
-        {post.comments.length > 0 && !showC && <button onClick={() => setShowC(true)} className="text-muted">View all {post.comments.length} comments</button>}
+        {post.comments.length > 0 && <button onClick={() => setSheet("comments")} className="text-muted">View all {post.comments.length} comments</button>}
         <p className="text-xs uppercase tracking-wide text-muted">{ago(post.at)} ago{post.reposts > 0 && ` · ${post.reposts} reposts`}</p>
       </div>
 
@@ -77,20 +77,8 @@ export function PostCard({ post }: { post: Post }) {
         </div>
       )}
 
-      {showC && (
-        <div className="space-y-3 border-t border-line px-3.5 py-3">
-          {post.comments.map((cm) => { const ca = person(s, cm.authorId); return (
-            <div key={cm.id} className="flex gap-2.5"><img src={ca.avatar} alt="" className="size-8 rounded-full object-cover" />
-              <div className="rounded-2xl bg-surface px-3.5 py-2 text-sm"><p className="font-bold">{ca.name} <span className="font-normal text-muted">{ago(cm.at)}</span></p><p>{cm.text}</p></div></div>
-          ); })}
-          <form onSubmit={send} className="flex items-center gap-2">
-            <img src={person(s, s.me).avatar} alt="" className="size-8 rounded-full object-cover" />
-            <label htmlFor={`c-${post.id}`} className="sr-only">Write a comment</label>
-            <input id={`c-${post.id}`} value={c} onChange={(e) => setC(e.target.value)} placeholder="Write a comment" className="min-w-0 flex-1 rounded-full bg-surface px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-accent" />
-            <button className="grid size-9 place-items-center rounded-full bg-accent text-accent-ink" aria-label="Send"><Send className="size-4" /></button>
-          </form>
-        </div>
-      )}
+      {sheet === "comments" && <CommentsSheet postId={post.id} onClose={() => setSheet(null)} />}
+      {sheet === "share" && <ShareSheet item={{ kind: "post", postId: post.id, image: post.media.find((x) => x.type === "image")?.src }} onClose={() => setSheet(null)} />}
       {toast && <p role="status" className="absolute inset-x-0 bottom-4 mx-auto w-fit rounded-full bg-ink px-4 py-2 text-sm font-semibold text-bg shadow-lg">{toast}</p>}
     </article>
   );

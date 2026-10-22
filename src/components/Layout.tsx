@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { createPortal } from "react-dom";
+import { Bookmark, Building2, Gift, Info, LogIn, LogOut, QrCode, Settings } from "lucide-react";
 import { Bell, Coins, Compass, Home, MapPinned, Menu, MessageCircle, Moon, Sun, User as UserIcon, X } from "lucide-react";
 import { useAuth } from "../lib/auth/AuthContext";
 import { conversations, notifications } from "../fixtures/account";
@@ -48,9 +50,41 @@ function SignedInActions() {
   );
 }
 
-function ThemeMenuItem() {
+function MenuDrawer({ onClose }: { onClose: () => void }) {
+  const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
-  return <button onClick={toggle} className="flex w-full items-center gap-2 rounded-full px-3.5 py-2 text-base font-semibold hover:bg-surface">{theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}{theme === "dark" ? "Light mode" : "Dark mode"}</button>;
+  const me = useStore((s) => person(s, s.me));
+  const balance = useStore((s) => s.balance);
+  const groups: [string, [string, string, typeof Home][]][] = user ? [
+    ["Go out", [["/home", "Feed", Home], ["/map", "Map", MapPinned], ["/events", "Events", CalendarDays], ["/explore", "Explore places", Compass], ["/reels", "Reels", Clapperboard]]],
+    ["Rewards", [["/wallet", "Tokens & passes", Coins], ["/referrals", "Invite friends", Gift], ["/wallet?scan=1", "Scan to check in", QrCode]]],
+    ["You", [["/messages", "Messages", MessageCircle], ["/notifications", "Notifications", Bell], ["/saved", "Saved", Bookmark], ["/profile", "Profile", UserIcon], ["/settings", "Settings", Settings]]],
+    ["More", [["/for-business", "Outsider for business", Building2], ["/about", "About", Info]]],
+  ] : [
+    ["Explore", [["/explore", "Explore places", Compass], ["/map", "Map", MapPinned], ["/rewards", "How tokens work", Coins]]],
+    ["More", [["/for-business", "Outsider for business", Building2], ["/about", "About", Info], ["/login", "Log in", LogIn]]],
+  ];
+  return createPortal(
+    <div className="fixed inset-0 z-[70] bg-black/40" onClick={onClose}>
+      <nav aria-label="Menu" onClick={(e) => e.stopPropagation()} className="absolute inset-y-0 right-0 flex w-[min(22rem,88vw)] flex-col overflow-y-auto bg-bg shadow-2xl">
+        <div className="flex items-center gap-3 border-b border-line p-4">
+          {user ? <><img src={me.avatar} alt="" className="size-12 rounded-full object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-bold">{me.name}</p><p className="text-sm text-accent-text">{balance} tokens</p></div></> : <span className="flex-1"><Logo /></span>}
+          <button onClick={onClose} className="grid size-10 place-items-center rounded-full bg-surface" aria-label="Close menu"><X className="size-5" /></button>
+        </div>
+        {groups.map(([g, items]) => (
+          <div key={g} className="px-3 pt-4">
+            <p className="px-3 pb-1 text-xs font-bold uppercase tracking-wide text-muted">{g}</p>
+            {items.map(([to, label, I]) => <Link key={to} to={to} onClick={onClose} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 font-semibold hover:bg-surface"><span className="grid size-9 place-items-center rounded-xl bg-accent-soft text-accent-text"><I className="size-5" /></span>{label}</Link>)}
+          </div>
+        ))}
+        <div className="mt-auto space-y-1 border-t border-line p-3">
+          <button onClick={toggle} className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 font-semibold hover:bg-surface"><span className="grid size-9 place-items-center rounded-xl bg-surface">{theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}</span>{theme === "dark" ? "Light mode" : "Dark mode"}</button>
+          {user && <button onClick={async () => { onClose(); await logout(); }} className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 font-semibold text-red-600 hover:bg-surface"><span className="grid size-9 place-items-center rounded-xl bg-surface"><LogOut className="size-5" /></span>Log out</button>}
+        </div>
+      </nav>
+    </div>,
+    document.body,
+  );
 }
 
 function Header() {
@@ -89,18 +123,7 @@ function Header() {
           </button>
         </div>
       </div>
-      {open && (
-        <nav id="mobile-nav" className="border-t border-line bg-bg px-4 py-3 lg:hidden" aria-label="Mobile">
-          <ul className="grid gap-1">
-            <li><ThemeMenuItem /></li>
-            <li><NavLink to="/for-business" className={(s) => `block ${link(s)} text-base`}>For business</NavLink></li>
-            <li><NavLink to="/about" className={(s) => `block ${link(s)} text-base`}>About Outsider</NavLink></li>
-            {user && [["/wallet", "Tokens & passes"], ["/events", "Events"], ["/explore", "Explore places"], ["/messages", "Messages"], ["/notifications", "Notifications"], ["/profile", "Profile"]].map(([to, l]) => <li key={to}><NavLink to={to} className={(s) => `block ${link(s)} text-base`}>{l}</NavLink></li>)}
-            {!user && <li><NavLink to="/rewards" className={(s) => `block ${link(s)} text-base`}>How tokens work</NavLink></li>}
-            {user ? <li><NavLink to="/settings" className={(s) => `block ${link(s)} text-base`}>Settings</NavLink></li> : <li><NavLink to="/login" className={(s) => `block ${link(s)} text-base`}>Log in</NavLink></li>}
-          </ul>
-        </nav>
-      )}
+      {open && <MenuDrawer onClose={() => setOpen(false)} />}
     </header>
   );
 }

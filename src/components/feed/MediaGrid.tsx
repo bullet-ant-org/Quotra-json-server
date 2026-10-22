@@ -12,7 +12,7 @@ export function MediaBadge({ media }: { media: Media[] }) {
 }
 
 // One item at a time; multi-item posts advance every 4s (pausing while a video plays).
-export function MediaGrid({ media }: { media: Media[] }) {
+export function MediaGrid({ media, postId }: { media: Media[]; postId?: string }) {
   const [i, setI] = useState(0);
   const [open, setOpen] = useState(false);
   const x0 = useRef(0);
@@ -37,7 +37,7 @@ export function MediaGrid({ media }: { media: Media[] }) {
         <span className="absolute right-3 top-10 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">{i + 1}/{n}</span>
         <div className="absolute inset-x-0 bottom-3 flex justify-center gap-1">{media.map((_, k) => <button key={k} onClick={() => setI(k)} aria-label={`Show item ${k + 1}`} className={`size-1.5 rounded-full transition-all ${k === i ? "w-4 bg-white" : "bg-white/60"}`} />)}</div>
       </>}
-      {open && <Lightbox media={media} start={i} onClose={() => setOpen(false)} />}
+      {open && <Lightbox media={media} start={i} postId={postId} onClose={() => setOpen(false)} />}
     </div>
   );
 }

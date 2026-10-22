@@ -1,8 +1,8 @@
 import { useScrollLock } from "../../lib/useScrollLock";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
-import { Plus, Send, X } from "lucide-react";
+import { Heart, Plus, Repeat2, Send, X } from "lucide-react";
+import { ShareSheet } from "./ShareSheet";
 import { actions, ago, person, useStore, type Story } from "../../lib/store";
 import { fileToMedia } from "../../lib/media";
 
@@ -16,15 +16,18 @@ function Viewer({ groups, start, onSeen, onClose }: { groups: Story[][]; start: 
   const [i, setI] = useState(0);
   const [reply, setReply] = useState("");
   const [paused, setPaused] = useState(false);
-  const nav = useNavigate();
+  const [liked, setLiked] = useState<string[]>([]);
+  const [share, setShare] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const s = useStore((x) => x);
   const list = groups[g]; const st = list[i]; const a = person(s, st.authorId);
   const next = () => (i < list.length - 1 ? setI(i + 1) : g < groups.length - 1 ? (setG(g + 1), setI(0)) : onClose());
   const prev = () => (i > 0 ? setI(i - 1) : g > 0 ? (setG(g - 1), setI(0)) : undefined);
-  useEffect(() => { onSeen(st.id); if (paused) return; const t = setTimeout(next, 5000); return () => clearTimeout(t); }); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { onSeen(st.id); if (paused || share) return; const t = setTimeout(next, 5000); return () => clearTimeout(t); }); // eslint-disable-line react-hooks/exhaustive-deps
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-label={`${a.name}'s story`} className="fixed inset-0 z-[80] grid place-items-center bg-black">
-      <div className="relative h-full w-full max-w-md overflow-hidden sm:h-[92dvh] sm:rounded-3xl">
+    <div role="dialog" aria-modal="true" aria-label={`${a.name}'s story`} className="fixed inset-0 z-[80] grid place-items-center overflow-hidden bg-black" style={{ touchAction: "none" }} onWheel={(e) => e.stopPropagation()}>
+      <img src={st.src} alt="" aria-hidden="true" className="absolute inset-0 size-full scale-125 object-cover opacity-60 blur-3xl" />
+      <div className="relative h-full w-full max-w-md overflow-hidden sm:h-[92dvh] sm:rounded-3xl sm:shadow-2xl">
         <img key={st.id} src={st.src} alt="" className="size-full object-cover" />
         <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/60 to-transparent p-3">
           <div className="flex gap-1">{list.map((x, n) => <span key={x.id} className="h-1 flex-1 overflow-hidden rounded-full bg-white/30"><span key={`${g}-${i}`} className={`block h-full bg-white ${n < i ? "w-full" : n === i ? (paused ? "w-1/2" : "animate-[grow_5s_linear_forwards]") : "w-0"}`} /></span>)}</div>
@@ -33,12 +36,17 @@ function Viewer({ groups, start, onSeen, onClose }: { groups: Story[][]; start: 
         </div>
         <button className="absolute inset-y-16 left-0 w-1/3" onClick={prev} aria-label="Previous story" />
         <button className="absolute inset-y-16 right-0 w-1/3" onClick={next} aria-label="Next story" />
-        {a.id !== s.me && (
-          <form onSubmit={(e) => { e.preventDefault(); if (reply.trim()) { onClose(); nav("/messages"); } }} className="absolute inset-x-3 bottom-4 flex gap-2">
-            <input value={reply} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)} onChange={(e) => setReply(e.target.value)} placeholder={`Reply to ${a.username}…`} aria-label="Reply" className="min-w-0 flex-1 rounded-full border border-white/60 bg-black/30 px-4 py-2.5 text-sm text-white placeholder:text-white/70 outline-none backdrop-blur" />
-            <button className="grid size-11 place-items-center rounded-full text-white" aria-label="Send reply"><Send /></button>
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pb-4 pt-10">
+          {toast && <p role="status" className="mb-2 text-center text-sm font-semibold text-white">{toast}</p>}
+          <form onSubmit={(e) => { e.preventDefault(); if (reply.trim()) { actions.sendMessage(actions.openChat(a.id), { kind: "text", text: `Replied to your story: ${reply.trim()}` }); setReply(""); setToast("Sent"); setTimeout(() => setToast(null), 1500); } }} className="flex items-center gap-2">
+            {a.id !== s.me && <input value={reply} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)} onChange={(e) => setReply(e.target.value)} placeholder={`Reply to ${a.username}…`} aria-label="Reply" className="min-w-0 flex-1 rounded-full border border-white/60 bg-black/30 px-4 py-2.5 text-sm text-white placeholder:text-white/70 outline-none backdrop-blur" />}
+            {a.id === s.me && <span className="flex-1 text-sm text-white/80">Your story</span>}
+            <button type="button" onClick={() => setLiked((l) => (l.includes(st.id) ? l.filter((x) => x !== st.id) : [...l, st.id]))} className="grid size-10 place-items-center text-white" aria-label="Like story"><Heart className={`size-7 ${liked.includes(st.id) ? "fill-red-500 text-red-500" : ""}`} /></button>
+            <button type="button" onClick={() => { actions.addStory(st.src); setToast("Reposted to your story"); setTimeout(() => setToast(null), 1500); }} className="grid size-10 place-items-center text-white" aria-label="Repost to your story"><Repeat2 className="size-6" /></button>
+            <button type="button" onClick={() => setShare(true)} className="grid size-10 place-items-center text-white" aria-label="Share"><Send className="size-6" /></button>
           </form>
-        )}
+        </div>
+        {share && <ShareSheet item={{ kind: "image", image: st.src }} onClose={() => setShare(false)} />}
       </div>
     </div>,
     document.body,

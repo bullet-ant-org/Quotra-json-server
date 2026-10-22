@@ -9,13 +9,13 @@ import { destinations, destPhoto } from "../../fixtures/destinations";
 
 type Panel = null | "place" | "people";
 
-function Modal({ onClose, autoPick }: { onClose: () => void; autoPick: boolean }) {
+function Modal({ onClose, autoPick, initialPlace }: { onClose: () => void; autoPick: boolean; initialPlace?: string }) {
   useScrollLock();
   const people = useStore((s) => s.people.filter((p) => p.id !== s.me));
   const me = useStore((s) => person(s, s.me));
   const [text, setText] = useState("");
   const [media, setMedia] = useState<Media[]>([]);
-  const [place, setPlace] = useState<string>();
+  const [place, setPlace] = useState<string | undefined>(initialPlace);
   const [tags, setTags] = useState<string[]>([]);
   const [panel, setPanel] = useState<Panel>(null);
   const [q, setQ] = useState("");
@@ -125,7 +125,8 @@ function Modal({ onClose, autoPick }: { onClose: () => void; autoPick: boolean }
 
 export function Composer() {
   const me = useStore((s) => person(s, s.me));
-  const [open, setOpen] = useState<null | "text" | "media">(null);
+  const initialPlace = new URLSearchParams(location.search).get("post") ?? undefined;
+  const [open, setOpen] = useState<null | "text" | "media">(initialPlace ? "media" : null);
   return (
     <div className="py-1">
       <div className="flex items-center gap-3">
@@ -139,7 +140,7 @@ export function Composer() {
           return <button key={l as string} onClick={() => setOpen("media")} className="flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-sm font-semibold text-muted hover:bg-surface"><Icon className="size-5 text-accent" />{l as string}</button>;
         })}
       </div>
-      {open && <Modal autoPick={open === "media"} onClose={() => setOpen(null)} />}
+      {open && <Modal autoPick={open === "media"} initialPlace={initialPlace} onClose={() => { setOpen(null); if (initialPlace) history.replaceState(null, "", "/home"); }} />}
     </div>
   );
 }

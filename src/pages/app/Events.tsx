@@ -5,6 +5,7 @@ import { CalendarDays, Coins, MapPin, Ticket, X } from "lucide-react";
 import { actions, useStore, type EventItem } from "../../lib/store";
 import { Img } from "../../components/Img";
 import { useTitle } from "../../lib/useTitle";
+import { Sheet } from "../../components/Sheet";
 
 export function QrModal({ title, sub, code, onClose }: { title: string; sub: string; code: string; onClose: () => void }) {
   useScrollLock();
@@ -26,21 +27,43 @@ export function QrModal({ title, sub, code, onClose }: { title: string; sub: str
 
 const fmt = (d: string) => new Date(d).toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short" });
 
+function EventDetails({ e, onClose, onReserve, mine, full }: { e: EventItem; onClose: () => void; onReserve: () => void; mine: boolean; full: boolean }) {
+  const left = e.slots ? e.slots - e.reserved.length : 0;
+  return (
+    <Sheet title="Ticket details" onClose={onClose}>
+      <img src={e.img} alt="" className="h-48 w-full object-cover [mask-image:linear-gradient(to_bottom,#000_60%,transparent)]" />
+      <div className="-mt-6 relative space-y-3 px-5 pb-6">
+        <h3 className="font-display text-2xl font-extrabold">{e.title}</h3>
+        <p className="flex items-center gap-1.5 text-sm text-muted"><CalendarDays className="size-4" />{fmt(e.date)} · <MapPin className="size-4" />{e.venue}</p>
+        {e.description && <p>{e.description}</p>}
+        <dl className="grid grid-cols-2 gap-2 text-sm">
+          {[["Ticket", e.tokenCost ? `${e.tokenCost} tokens` : e.price], ["Door price", e.price], ["Max spend", e.maxSpend ? `₦${e.maxSpend.toLocaleString()}` : "No limit set"], ["Limited to", e.slots ? `${e.slots} people (${left} left)` : "Open entry"]].map(([k, v]) => <div key={k} className="rounded-2xl bg-surface p-3"><dt className="text-xs text-muted">{k}</dt><dd className="font-bold">{v}</dd></div>)}
+        </dl>
+        {e.maxSpend && <p className="text-xs text-muted">Max spend is the most the sponsor covers per person at the venue. Anything above it is paid by you.</p>}
+        {e.slots && <button disabled={full && !mine} onClick={onReserve} className="w-full rounded-full bg-accent py-3 font-bold text-accent-ink disabled:bg-surface-2 disabled:text-muted">{mine ? "Show my QR code" : full ? "Fully reserved" : `Reserve for ${e.tokenCost} tokens`}</button>}
+      </div>
+    </Sheet>
+  );
+}
+
 function EventCard({ e, me, onQr }: { e: EventItem; me: string; onQr: (e: EventItem) => void }) {
+  const [details, setDetails] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const mine = e.reserved.includes(me);
   const full = !!e.slots && e.reserved.length >= e.slots;
   return (
     <article className="overflow-hidden rounded-3xl border border-line bg-bg">
-      <div className="relative aspect-[16/9]">
+      {details && <EventDetails e={e} mine={e.reserved.includes(me)} full={!!e.slots && e.reserved.length >= e.slots} onClose={() => setDetails(false)} onReserve={() => { setDetails(false); if (e.reserved.includes(me)) onQr(e); else actions.reserve(e.id).then(setErr); }} />}
+      <button onClick={() => setDetails(true)} className="relative block aspect-[16/9] w-full text-left" aria-label={`Details for ${e.title}`}>
         <Img src={e.img} alt="" className="size-full" />
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/10 to-transparent" />
         {e.slots && <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-ink"><Coins className="size-3.5" />Sponsored · {e.tokenCost} tokens</span>}
-      </div>
+      </button>
       <div className="-mt-10 relative space-y-2 p-5 pt-0">
         <p className="inline-flex items-center gap-1.5 rounded-full bg-bg px-3 py-1 text-sm font-bold text-accent-text shadow-sm"><CalendarDays className="size-4" />{fmt(e.date)}</p>
         <h3 className="font-display text-xl font-bold leading-tight">{e.title}</h3>
         <p className="flex items-center gap-1 text-sm text-muted"><MapPin className="size-4" />{e.venue}</p>
+        {e.maxSpend && <p className="text-xs font-semibold text-accent-text">Max spend ₦{e.maxSpend.toLocaleString()} · tap for details</p>}
         <p className="text-sm"><span className="font-semibold">{e.price}</span>{e.slots && <span className="text-muted"> · or reserve with tokens</span>}</p>
         {e.slots && (
           <div>

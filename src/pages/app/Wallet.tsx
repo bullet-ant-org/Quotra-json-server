@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowDownLeft, ArrowUpRight, Coins, Ticket } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Coins, Gift, QrCode, Sun, Ticket } from "lucide-react";
+import { ScanSheet } from "../../components/ScanSheet";
+import { POST_BONUS } from "../../lib/store";
 import { ago, passSlots, useStore, actions, type Pass } from "../../lib/store";
 import { bySlug, destPhoto } from "../../fixtures/destinations";
 import { QrModal } from "./Events";
@@ -32,6 +34,10 @@ export default function Wallet() {
   useTitle("Tokens");
   const s = useStore((x) => x);
   const [qr, setQr] = useState<Pass | null>(null);
+  const [scan, setScan] = useState(new URLSearchParams(location.search).has("scan"));
+  const today = new Date().toISOString().slice(0, 10);
+  const bounty = s.bounties?.find((b) => b.active && b.starts <= today && b.ends >= today);
+  const openBonus = (s.visits ?? []).filter((v) => !v.bonus && Date.now() - v.at < 864e5);
   const live = s.passes.filter((p) => p.active);
   const affordable = live.filter((p) => p.perPerson <= s.balance && p.claimed.length < passSlots(p) && !p.claimed.includes(s.me));
   const mine = live.filter((p) => p.claimed.includes(s.me));
@@ -44,6 +50,29 @@ export default function Wallet() {
         <p className="mt-2 max-w-md opacity-90">{affordable.length ? `You can use them at ${affordable.length} place${affordable.length > 1 ? "s" : ""} today.` : "Not enough for today's passes yet. Check in somewhere to earn more."}</p>
         <p className="mt-4 text-xs opacity-80">New passes drop every day. Tokens aren't cash. <Link to="/token-terms" className="underline">Token terms</Link></p>
       </div>
+
+      {bounty && (
+        <section className="relative mt-6 overflow-hidden rounded-[2rem] bg-gradient-to-br from-amber-400 via-accent to-fuchsia-600 p-6 text-white">
+          <Sun className="absolute -right-6 -top-6 size-40 opacity-20" aria-hidden="true" />
+          <p className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-bold backdrop-blur">Top reward · ends {new Date(bounty.ends).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}</p>
+          <h2 className="mt-3 font-display text-3xl font-extrabold">{bounty.title}</h2>
+          <p className="mt-1 max-w-md opacity-95">{bounty.description}</p>
+          <p className="mt-3 font-display text-4xl font-extrabold">+{bounty.reward} <span className="text-lg font-semibold">tokens</span></p>
+          <button onClick={() => setScan(true)} className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 font-bold text-ink"><QrCode className="size-4" />Scan to start</button>
+        </section>
+      )}
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <button onClick={() => setScan(true)} className="flex items-center gap-4 rounded-3xl bg-ink p-5 text-left text-bg"><QrCode className="size-10 shrink-0" /><span><span className="block font-display text-lg font-bold">Scan to check in</span><span className="text-sm opacity-80">Find the Outsider QR at the counter</span></span></button>
+        <Link to="/referrals" className="flex items-center gap-4 rounded-3xl bg-surface p-5"><Gift className="size-10 shrink-0 text-accent" /><span><span className="block font-display text-lg font-bold">Invite friends</span><span className="text-sm text-muted">+1 token every time they go out</span></span></Link>
+      </div>
+
+      {openBonus.length > 0 && (
+        <section className="mt-6 rounded-3xl border-2 border-dashed border-accent p-5">
+          <h2 className="font-display text-lg font-bold">Bonus waiting: post about your visit</h2>
+          {openBonus.map((v) => <p key={v.id} className="mt-2 flex items-center justify-between gap-3 text-sm"><span>{bySlug(v.place)?.name}</span><Link to={`/home?post=${v.place}`} className="rounded-full bg-accent px-4 py-2 font-bold text-accent-ink">Post for +{POST_BONUS}</Link></p>)}
+        </section>
+      )}
 
       {mine.length > 0 && (
         <section className="mt-8"><h2 className="text-2xl font-bold">Your passes</h2>
@@ -64,6 +93,7 @@ export default function Wallet() {
           ))}
         </ul>
       </section>
+      {scan && <ScanSheet onClose={() => setScan(false)} />}
       {qr && <QrModal title={qr.title} sub={bySlug(qr.place)?.name ?? ""} code={`PASS-${qr.id.toUpperCase()}-${s.me.toUpperCase()}`} onClose={() => setQr(null)} />}
     </div>
   );

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { get, post } from "../../lib/api";
-import { LIVE } from "../../lib/store";
+import { LIVE, } from "../../lib/store";
+import QRCode from "qrcode";
 import { Route, Routes } from "react-router-dom";
-import { CalendarDays, CreditCard, Inbox, LayoutDashboard, MapPinned, Megaphone, Newspaper, UserCheck } from "lucide-react";
+import { CalendarDays, CreditCard, QrCode, Inbox, LayoutDashboard, MapPinned, Megaphone, Newspaper, UserCheck } from "lucide-react";
 import { actions, person, useStore } from "../../lib/store";
 import { destPhoto, formatNaira } from "../../fixtures/destinations";
 import { PH, photo, fileToMedia } from "../../lib/media";
@@ -17,6 +18,7 @@ const nav = [
   { to: "/brand/places", label: "My places", icon: MapPinned },
   { to: "/brand/ads", label: "Ads & promotions", icon: Megaphone },
   { to: "/brand/requests", label: "Visit requests", icon: UserCheck },
+  { to: "/brand/qr", label: "Check-in QR", icon: QrCode },
   { to: "/brand/inbox", label: "Inbox", icon: Inbox },
   { to: "/brand/events", label: "Events", icon: CalendarDays },
   { to: "/brand/billing", label: "Billing", icon: CreditCard },
@@ -28,6 +30,29 @@ const demoPlans = [
   { id: "growth", name: "Growth", amount: 15000, interval: "monthly", features: ["5 places", "10 live ads", "Analytics", "Priority review"] },
   { id: "pro", name: "Pro", amount: 40000, interval: "monthly", features: ["20 places", "Unlimited ads", "Team accounts", "Sponsored placement"] },
 ];
+
+function CheckinQr() {
+  const s = useStore((x) => x);
+  const mine = s.places.filter((p) => p.owner === "b1" || p.owner === s.me);
+  const [src, setSrc] = useState<Record<string, string>>({});
+  useEffect(() => { mine.forEach((p) => QRCode.toDataURL(`outsider:checkin:${p.slug}`, { width: 600, margin: 2, color: { dark: "#242326", light: "#ffffff" } }).then((u) => setSrc((x) => ({ ...x, [p.slug]: u })))); }, [mine.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted">Print this and place it at your counter. Visitors scan it to check in and earn tokens, and get a bonus when they post about you.</p>
+      <div className="grid gap-4 md:grid-cols-2">{mine.map((p) => (
+        <Card key={p.slug} className="space-y-3 text-center">
+          <p className="font-display text-xl font-bold">{p.name}</p>
+          {src[p.slug] && <img src={src[p.slug]} alt={`Check-in QR for ${p.name}`} className="mx-auto w-56 rounded-2xl border border-line" />}
+          <p className="font-mono text-xs text-muted">Code: {p.slug}</p>
+          <div className="flex justify-center gap-2">
+            {src[p.slug] && <a href={src[p.slug]} download={`outsider-qr-${p.slug}.png`} className={btn}>Download</a>}
+            <button onClick={() => window.print()} className={btn2}>Print</button>
+          </div>
+        </Card>
+      ))}</div>
+    </div>
+  );
+}
 
 function Billing() {
   const [plans, setPlans] = useState<any[]>(LIVE ? [] : demoPlans);
@@ -195,6 +220,7 @@ export default function Brand() {
         <Route path="inbox/:id" element={<div className="-m-4 overflow-hidden sm:-m-6"><Messages /></div>} />
         <Route path="events" element={<BrandEvents />} />
         <Route path="billing" element={<Billing />} />
+        <Route path="qr" element={<CheckinQr />} />
       </Routes>
     </Shell>
   );

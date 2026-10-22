@@ -18,6 +18,8 @@ import Settings from "./pages/app/Settings";
 import { RequireAuth } from "./lib/auth/AuthContext";
 import Reels from "./pages/app/Reels";
 import Events from "./pages/app/Events";
+import Referrals from "./pages/app/Referrals";
+import Saved from "./pages/app/Saved";
 
 const Admin = lazy(() => import("./pages/dash/Admin"));
 const Brand = lazy(() => import("./pages/dash/Brand"));
@@ -53,6 +55,8 @@ export default function App() {
         <Route path="settings" element={guard(<Settings />)} />
         <Route path="reels" element={guard(<Reels />)} />
         <Route path="events" element={guard(<Events />)} />
+        <Route path="referrals" element={guard(<Referrals />)} />
+        <Route path="saved" element={guard(<Saved />)} />
         <Route path="u/:username" element={guard(<Profile />)} />
         <Route path="*" element={<NotFound />} />
       </Route>

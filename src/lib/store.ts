@@ -6,22 +6,30 @@ import { PH, photo } from "./media";
 export type Role = "user" | "brand" | "admin";
 export interface Person { id: string; name: string; username: string; avatar: string; bio?: string; following: boolean; status?: "active" | "suspended" }
 export interface Media { type: "image" | "video"; src: string }
-export interface Comment { id: string; authorId: string; text: string; at: number }
+export interface Comment { id: string; authorId: string; text: string; at: number; likes?: string[] }
 export interface Party { date: string; max: number; going: string[] }
 export interface Post { id: string; authorId: string; text: string; media: Media[]; place?: string; tags: string[]; likes: string[]; comments: Comment[]; reposts: number; at: number; party?: Party }
 export interface Story { id: string; authorId: string; src: string; at: number }
 export interface Highlight { id: string; name: string; cover: string; items: string[] }
 export interface Pass { id: string; place: string; title: string; perPerson: number; budget: number; date: string; claimed: string[]; active: boolean }
-export interface EventItem { id: string; title: string; venue: string; place?: string; date: string; img: string; price: string; slots?: number; tokenCost?: number; reserved: string[]; host: string }
+export interface EventItem { id: string; title: string; venue: string; place?: string; date: string; img: string; price: string; slots?: number; tokenCost?: number; reserved: string[]; host: string; description?: string; maxSpend?: number }
 export interface Txn { id: string; label: string; amount: number; at: number }
 export interface Ad { id: string; title: string; body: string; budget: number; status: "live" | "paused" | "review"; reach: number }
 export interface VisitReq { id: string; from: string; date: string; people: number; note: string; status: "pending" | "accepted" | "declined" }
 export interface Place { slug: string; name: string; owner: string; status: "live" | "pending" | "rejected" }
 
+export interface Bounty { id: string; title: string; description: string; reward: number; starts: string; ends: string; active: boolean }
+export interface Visit { id: string; place: string; at: number; bonus: boolean }
+export interface Poll { question: string; options: { label: string; place?: string; votes: string[] }[] }
+export interface ChatMsg { id: string; from: string; at: number; kind: "text" | "image" | "video" | "audio" | "location" | "poll" | "post"; text?: string; src?: string; place?: string; postId?: string; poll?: Poll }
+export interface Chat { id: string; name?: string; group: boolean; members: string[]; messages: ChatMsg[] }
+export interface Referral { code: string; invited: { id: string; joined: number; checkins: number }[]; earned: number }
+
 export interface State {
   me: string; people: Person[]; posts: Post[]; stories: Story[]; highlights: Highlight[];
   balance: number; txns: Txn[]; passes: Pass[]; events: EventItem[]; blocked: string[];
   ads: Ad[]; requests: VisitReq[]; places: Place[];
+  saved?: string[]; bounties?: Bounty[]; visits?: Visit[]; chats?: Chat[]; referral?: Referral;
   unread?: number; pv?: number; // pv bumps when the place catalogue reloads
 }
 
@@ -79,13 +87,27 @@ const seed = (): State => ({
     { id: "ps4", place: "arewa-heritage-museum", title: "Guided tour", perPerson: 60, budget: 600, date: today, claimed: ["u1", "u2", "u3", "u4", "u5", "x1", "x2", "x3", "x4", "x5"], active: true },
   ],
   events: [
-    { id: "e1", title: "Sunset Sessions: Beach Party", venue: "Palmfringe Beach Resort, Lekki", place: "palmfringe-beach-resort", date: inDays(2), img: photo(PH.party), price: "₦10,000", slots: 20, tokenCost: 200, reserved: ["u1", "u2", "u3"], host: "b1" },
+    { id: "e1", title: "Sunset Sessions: Beach Party", venue: "Palmfringe Beach Resort, Lekki", place: "palmfringe-beach-resort", date: inDays(2), img: photo(PH.party), price: "₦10,000", slots: 20, tokenCost: 200, reserved: ["u1", "u2", "u3"], host: "b1", maxSpend: 15000, description: "Sunset DJ set on the beach, two welcome drinks and pool access from 4 pm. Token holders get entry and the welcome drinks; anything else is on you up to the max spend." },
     { id: "e2", title: "Live at the Lounge", venue: "Skyline Lounge, Abuja", place: "skyline-lounge-abuja", date: inDays(4), img: photo(PH.concert), price: "₦8,000", reserved: [], host: "b1" },
     { id: "e3", title: "Afro Night Market", venue: "Marina, Lagos Island", date: inDays(5), img: photo(PH.crowd), price: "Free entry", slots: 20, tokenCost: 80, reserved: Array.from({ length: 20 }, (_, i) => `r${i}`), host: "b1" },
-    { id: "e4", title: "Dawn Hike + Breakfast", venue: "Obudu Ridge Camp", place: "obudu-ridge-camp", date: inDays(9), img: photo(PH.hills), price: "₦12,000", slots: 12, tokenCost: 300, reserved: ["u5"], host: "b1" },
+    { id: "e4", title: "Dawn Hike + Breakfast", venue: "Obudu Ridge Camp", place: "obudu-ridge-camp", date: inDays(9), img: photo(PH.hills), price: "₦12,000", slots: 12, tokenCost: 300, reserved: ["u5"], host: "b1", maxSpend: 20000, description: "Guided 5 am hike to the ridge, then a hot breakfast at camp. Wear proper shoes." },
     { id: "e5", title: "Open-air Concert", venue: "Port Harcourt Pleasure Park", date: inDays(12), img: photo(PH.stage), price: "₦5,000", reserved: [], host: "b1" },
   ],
   blocked: [],
+  saved: [],
+  bounties: [{ id: "bt1", title: "Summer Outsider Bounty", description: "Check in at any beach or resort and post about it. Top reward of the season.", reward: 300, starts: inDays(-10), ends: inDays(60), active: true }],
+  visits: [{ id: "v1", place: "kora-terrace-kitchen", at: now - 3 * h, bonus: false }],
+  referral: { code: "ADA-OUT", invited: [{ id: "u4", joined: now - 20 * d, checkins: 7 }, { id: "u5", joined: now - 9 * d, checkins: 3 }], earned: 10 },
+  chats: [
+    { id: "c1", group: false, members: ["me", "u1"], messages: [
+      { id: "x1", from: "u1", at: now - 2 * h, kind: "text", text: "Are you still up for Obudu next weekend?" },
+      { id: "x2", from: "me", at: now - 110 * 60e3, kind: "text", text: "Yes! The dawn hike looks unreal." },
+      { id: "x3", from: "u1", at: now - 100 * 60e3, kind: "location", place: "obudu-ridge-camp" }] },
+    { id: "c2", group: false, members: ["me", "b1"], messages: [{ id: "x4", from: "b1", at: now - 20 * h, kind: "text", text: "Hello! Day passes are available this weekend 🌴" }] },
+    { id: "c3", group: true, name: "Weekend crew", members: ["me", "u1", "u2", "u5"], messages: [
+      { id: "x5", from: "u2", at: now - 5 * h, kind: "text", text: "Where are we going Saturday?" },
+      { id: "x6", from: "u5", at: now - 4 * h, kind: "poll", poll: { question: "Saturday plan?", options: [{ label: "Palmfringe Beach Resort", place: "palmfringe-beach-resort", votes: ["u2", "u5"] }, { label: "Kora Terrace Kitchen", place: "kora-terrace-kitchen", votes: ["u1"] }, { label: "Waveform Water Park", place: "waveform-water-park", votes: [] }] } }] },
+  ],
   ads: [
     { id: "a1", title: "Weekday day pass", body: "Pool, beach and lunch. 100 tokens for outsiders.", budget: 50000, status: "live", reach: 12400 },
     { id: "a2", title: "Sunset Sessions", body: "Beach party this Saturday.", budget: 30000, status: "review", reach: 0 },
@@ -102,9 +124,10 @@ const seed = (): State => ({
   ],
 });
 
+export const POST_BONUS = 25;
 export const LIVE = !!import.meta.env.VITE_API_URL;
 const empty = (): State => ({ me: "", people: [], posts: [], stories: [], highlights: [], balance: 0, txns: [], passes: [], events: [], blocked: [], ads: [], requests: [], places: [], unread: 0, pv: 0 });
-const KEY = "outsider-store-v2";
+const KEY = "outsider-store-v3";
 let state: State = LIVE ? empty() : (() => { try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : seed(); } catch { return seed(); } })();
 const subs = new Set<() => void>();
 
@@ -122,8 +145,33 @@ export const uid = () => Math.random().toString(36).slice(2, 9);
 export const person = (s: State, id: string): Person => s.people.find((p) => p.id === id) ?? { id, name: "Outsider", username: id, avatar: photo(PH.p4, 200), following: false };
 export const passSlots = (p: Pass) => Math.floor(p.budget / p.perPerson);
 
+const msg = (from: string, m: Omit<ChatMsg, "id" | "from" | "at">): ChatMsg => ({ id: uid(), from, at: Date.now(), ...m });
+
 export const actions = {
-  addPost: (p: Omit<Post, "id" | "authorId" | "likes" | "comments" | "reposts" | "at">) => set((s) => { s.posts.unshift({ ...p, id: uid(), authorId: s.me, likes: [], comments: [], reposts: 0, at: Date.now() }); }),
+  toggleSave: (id: string) => set((s) => { s.saved ??= []; s.saved = s.saved.includes(id) ? s.saved.filter((x) => x !== id) : [...s.saved, id]; }),
+  likeComment: (postId: string, cId: string) => set((s) => { const c = s.posts.find((p) => p.id === postId)?.comments.find((x) => x.id === cId); if (c) { c.likes ??= []; c.likes = c.likes.includes(s.me) ? c.likes.filter((x) => x !== s.me) : [...c.likes, s.me]; } }),
+  sendMessage: (chatId: string, m: Omit<ChatMsg, "id" | "from" | "at">) => set((s) => { s.chats?.find((c) => c.id === chatId)?.messages.push(msg(s.me, m)); }),
+  shareTo: (chatIds: string[], m: Omit<ChatMsg, "id" | "from" | "at">) => set((s) => { chatIds.forEach((id) => s.chats?.find((c) => c.id === id)?.messages.push(msg(s.me, m))); }),
+  vote: (chatId: string, msgId: string, i: number) => set((s) => { const p = s.chats?.find((c) => c.id === chatId)?.messages.find((x) => x.id === msgId)?.poll; if (p) p.options.forEach((o, k) => { o.votes = o.votes.filter((v) => v !== s.me); if (k === i) o.votes.push(s.me); }); }),
+  openChat: (personId: string): string => {
+    const s = getState(); const ex = s.chats?.find((c) => !c.group && c.members.includes(personId));
+    if (ex) return ex.id;
+    const id = uid(); set((st) => { st.chats ??= []; st.chats.unshift({ id, group: false, members: [st.me, personId], messages: [] }); }); return id;
+  },
+  createGroup: (name: string, members: string[]): string => { const id = uid(); set((s) => { s.chats ??= []; s.chats.unshift({ id, name, group: true, members: [s.me, ...members], messages: [msg(s.me, { kind: "text", text: `Created "${name}"` })] }); }); return id; },
+  // Business QR check-in: earns the place's tokens, plus referral credit; posting there later earns a bonus.
+  checkIn: async (slug: string, tokens: number): Promise<string | null> => {
+    const s = getState();
+    if (s.visits?.some((v) => v.place === slug && Date.now() - v.at < 864e5)) return "You've already checked in here today.";
+    set((st) => { st.visits ??= []; st.visits.unshift({ id: uid(), place: slug, at: Date.now(), bonus: false }); st.balance += tokens; st.txns.unshift({ id: uid(), label: `Checked in (QR)`, amount: tokens, at: Date.now() }); });
+    return null;
+  },
+  saveBounty: (b: Bounty) => set((s) => { s.bounties ??= []; const i = s.bounties.findIndex((x) => x.id === b.id); if (i >= 0) s.bounties[i] = b; else s.bounties.unshift(b); }),
+  addPost: (p: Omit<Post, "id" | "authorId" | "likes" | "comments" | "reposts" | "at">) => set((s) => {
+    s.posts.unshift({ ...p, id: uid(), authorId: s.me, likes: [], comments: [], reposts: 0, at: Date.now() });
+    const v = s.visits?.find((x) => x.place === p.place && !x.bonus && Date.now() - x.at < 864e5);
+    if (v) { v.bonus = true; s.balance += POST_BONUS; s.txns.unshift({ id: uid(), label: "Posted after check-in", amount: POST_BONUS, at: Date.now() }); }
+  }),
   toggleLike: (id: string) => set((s) => { const p = s.posts.find((x) => x.id === id)!; p.likes = p.likes.includes(s.me) ? p.likes.filter((x) => x !== s.me) : [...p.likes, s.me]; }),
   comment: (id: string, text: string) => set((s) => { s.posts.find((x) => x.id === id)!.comments.push({ id: uid(), authorId: s.me, text, at: Date.now() }); }),
   repost: (id: string) => set((s) => { const p = s.posts.find((x) => x.id === id)!; p.reposts++; s.posts.unshift({ ...p, id: uid(), authorId: s.me, text: `Reposted from @${person(s, p.authorId).username}: ${p.text}`, likes: [], comments: [], reposts: 0, at: Date.now(), party: undefined }); }),
@@ -152,7 +200,7 @@ export const actions = {
   },
   createPass: (p: Omit<Pass, "id" | "claimed" | "active">) => set((s) => { s.passes.unshift({ ...p, id: uid(), claimed: [], active: true }); }),
   togglePass: (id: string) => set((s) => { const p = s.passes.find((x) => x.id === id)!; p.active = !p.active; }),
-  sponsorEvent: (id: string, slots: number, tokenCost: number) => set((s) => { const e = s.events.find((x) => x.id === id)!; e.slots = slots; e.tokenCost = tokenCost; }),
+  sponsorEvent: (id: string, slots: number, tokenCost: number, maxSpend?: number, description?: string) => set((s) => { const e = s.events.find((x) => x.id === id)!; e.slots = slots; e.tokenCost = tokenCost; e.maxSpend = maxSpend; if (description) e.description = description; }),
   addEvent: (e: Omit<EventItem, "id" | "reserved">) => set((s) => { s.events.unshift({ ...e, id: uid(), reserved: [] }); }),
   setUserStatus: (id: string, status: "active" | "suspended") => set((s) => { const p = s.people.find((x) => x.id === id); if (p) p.status = status; }),
   setPlace: (slug: string, status: Place["status"]) => set((s) => { const p = s.places.find((x) => x.slug === slug); if (p) p.status = status; }),
