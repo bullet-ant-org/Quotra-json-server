@@ -53,12 +53,21 @@ export default function Wallet() {
 
       {bounty && (
         <section className="relative mt-6 overflow-hidden rounded-[2rem] bg-gradient-to-br from-amber-400 via-accent to-fuchsia-600 p-6 text-white">
+          {bounty.img && <img src={bounty.img} alt="" className="absolute inset-0 size-full object-cover opacity-40 mix-blend-overlay" />}
           <Sun className="absolute -right-6 -top-6 size-40 opacity-20" aria-hidden="true" />
-          <p className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-bold backdrop-blur">Top reward · ends {new Date(bounty.ends).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}</p>
-          <h2 className="mt-3 font-display text-3xl font-extrabold">{bounty.title}</h2>
-          <p className="mt-1 max-w-md opacity-95">{bounty.description}</p>
-          <p className="mt-3 font-display text-4xl font-extrabold">+{bounty.reward} <span className="text-lg font-semibold">tokens</span></p>
-          <button onClick={() => setScan(true)} className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 font-bold text-ink"><QrCode className="size-4" />Scan to start</button>
+          <p className="relative inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-bold backdrop-blur">☀️ Summer top reward · ends {new Date(bounty.ends).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}</p>
+          <div className="relative">
+            <h2 className="mt-3 font-display text-3xl font-extrabold sm:text-4xl">{bounty.title}</h2>
+            <p className="mt-1 max-w-md opacity-95">{bounty.description}</p>
+            <div className="mt-4 flex flex-wrap items-end gap-4">
+              <p className="font-display text-4xl font-extrabold">{bounty.reward.toLocaleString()} <span className="text-lg font-semibold">tokens</span></p>
+              <p className="rounded-full bg-black/25 px-3 py-1 text-sm font-bold">{Math.max(0, bounty.slots - bounty.claimed.length)} of {bounty.slots} spots left</p>
+            </div>
+            <div className="mt-3 h-2 max-w-sm overflow-hidden rounded-full bg-white/30"><div className="h-full rounded-full bg-white" style={{ width: `${Math.min(100, (s.balance / bounty.reward) * 100)}%` }} /></div>
+            <p className="mt-1 text-xs opacity-90">You have {s.balance.toLocaleString()} of {bounty.reward.toLocaleString()} tokens</p>
+            {bounty.claimed.includes(s.me) ? <p className="mt-4 inline-flex rounded-full bg-white px-5 py-2.5 font-bold text-ink">🎉 Your spot is reserved</p>
+              : <button disabled={bounty.claimed.length >= bounty.slots} onClick={() => actions.claimBounty(bounty.id).then((e) => e && alert(e))} className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 font-bold text-ink disabled:opacity-60">{bounty.claimed.length >= bounty.slots ? "All spots taken" : s.balance >= bounty.reward ? "Claim my spot" : "Keep earning to unlock"}</button>}
+          </div>
         </section>
       )}
 

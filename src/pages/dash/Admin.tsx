@@ -83,17 +83,18 @@ function Passes() {
 
 function Bounties() {
   const s = useStore((x) => x);
-  const blank = { id: "", title: "Summer Outsider Bounty", description: "Check in and post to claim the top reward of the season.", reward: 300, starts: new Date().toISOString().slice(0, 10), ends: new Date(Date.now() + 60 * 864e5).toISOString().slice(0, 10), active: true };
+  const blank = { id: "", title: "2 weeks in Zanzibar", description: "Flights, villa and tours for 14 days.", reward: 10000, slots: 2, claimed: [] as string[], img: "", starts: new Date().toISOString().slice(0, 10), ends: new Date(Date.now() + 60 * 864e5).toISOString().slice(0, 10), active: true };
   const [f, setF] = useState(blank);
   const set = (k: keyof typeof blank, v: string | number | boolean) => setF({ ...f, [k]: v });
   return (
     <div className="grid gap-5 xl:grid-cols-[24rem_1fr]">
       <Card className="h-fit space-y-3">
-        <h2 className="font-display text-lg font-bold">{f.id ? "Edit bounty" : "New seasonal bounty"}</h2>
+        <h2 className="font-display text-lg font-bold">{f.id ? "Edit top reward" : "New summer top reward"}</h2>
         <p className="text-sm text-muted">Shows at the very top of everyone's tokens page while it's active and inside its dates.</p>
         <label className="block space-y-1 text-sm font-semibold">Title<input value={f.title} onChange={(e) => set("title", e.target.value)} className={inputCls} /></label>
         <label className="block space-y-1 text-sm font-semibold">Details<textarea rows={3} value={f.description} onChange={(e) => set("description", e.target.value)} className={inputCls} /></label>
-        <label className="block space-y-1 text-sm font-semibold">Reward (tokens)<input type="number" min={1} value={f.reward} onChange={(e) => set("reward", +e.target.value)} className={inputCls} /></label>
+        <div className="grid grid-cols-2 gap-2"><label className="space-y-1 text-sm font-semibold">Ticket price (tokens)<input type="number" min={1} value={f.reward} onChange={(e) => set("reward", +e.target.value)} className={inputCls} /></label><label className="space-y-1 text-sm font-semibold">Spots<input type="number" min={1} value={f.slots} onChange={(e) => set("slots", +e.target.value)} className={inputCls} /></label></div>
+        <label className="block space-y-1 text-sm font-semibold">Cover image URL<input value={f.img} onChange={(e) => set("img", e.target.value)} className={inputCls} /></label>
         <div className="grid grid-cols-2 gap-2">
           <label className="space-y-1 text-sm font-semibold">Starts<input type="date" value={f.starts} onChange={(e) => set("starts", e.target.value)} className={inputCls} /></label>
           <label className="space-y-1 text-sm font-semibold">Ends<input type="date" value={f.ends} onChange={(e) => set("ends", e.target.value)} className={inputCls} /></label>
@@ -104,9 +105,9 @@ function Bounties() {
       <div className="space-y-3">{(s.bounties ?? []).map((b) => (
         <Card key={b.id} className="flex flex-wrap items-center gap-4">
           <Sun className="size-8 text-accent" />
-          <div className="min-w-0 flex-1"><p className="font-bold">{b.title}</p><p className="text-sm text-muted">{b.starts} → {b.ends} · +{b.reward} tokens</p></div>
+          <div className="min-w-0 flex-1"><p className="font-bold">{b.title}</p><p className="text-sm text-muted">{b.starts} → {b.ends} · {b.reward.toLocaleString()} tokens · {b.claimed.length}/{b.slots} claimed</p></div>
           <Badge tone={b.active ? "ok" : "muted"}>{b.active ? "Active" : "Off"}</Badge>
-          <button onClick={() => setF(b)} className={btn2}>Edit</button>
+          <button onClick={() => setF({ ...b, img: b.img ?? "" })} className={btn2}>Edit</button>
         </Card>
       ))}</div>
     </div>

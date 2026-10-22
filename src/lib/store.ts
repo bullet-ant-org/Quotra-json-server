@@ -18,7 +18,7 @@ export interface Ad { id: string; title: string; body: string; budget: number; s
 export interface VisitReq { id: string; from: string; date: string; people: number; note: string; status: "pending" | "accepted" | "declined" }
 export interface Place { slug: string; name: string; owner: string; status: "live" | "pending" | "rejected" }
 
-export interface Bounty { id: string; title: string; description: string; reward: number; starts: string; ends: string; active: boolean }
+export interface Bounty { id: string; title: string; description: string; reward: number; starts: string; ends: string; active: boolean; slots: number; claimed: string[]; img?: string }
 export interface Visit { id: string; place: string; at: number; bonus: boolean }
 export interface Poll { question: string; options: { label: string; place?: string; votes: string[] }[] }
 export interface ChatMsg { id: string; from: string; at: number; kind: "text" | "image" | "video" | "audio" | "location" | "poll" | "post"; text?: string; src?: string; place?: string; postId?: string; poll?: Poll }
@@ -95,7 +95,7 @@ const seed = (): State => ({
   ],
   blocked: [],
   saved: [],
-  bounties: [{ id: "bt1", title: "Summer Outsider Bounty", description: "Check in at any beach or resort and post about it. Top reward of the season.", reward: 300, starts: inDays(-10), ends: inDays(60), active: true }],
+  bounties: [{ id: "bt1", title: "2 weeks in Zanzibar", description: "Flights, beach villa and island tours for 14 days. The summer top reward, only 2 spots.", reward: 10000, starts: inDays(-10), ends: inDays(60), active: true, slots: 2, claimed: [], img: photo(PH.beach2, 1200) }],
   visits: [{ id: "v1", place: "kora-terrace-kitchen", at: now - 3 * h, bonus: false }],
   referral: { code: "ADA-OUT", invited: [{ id: "u4", joined: now - 20 * d, checkins: 7 }, { id: "u5", joined: now - 9 * d, checkins: 3 }], earned: 10 },
   chats: [
@@ -127,7 +127,7 @@ const seed = (): State => ({
 export const POST_BONUS = 25;
 export const LIVE = !!import.meta.env.VITE_API_URL;
 const empty = (): State => ({ me: "", people: [], posts: [], stories: [], highlights: [], balance: 0, txns: [], passes: [], events: [], blocked: [], ads: [], requests: [], places: [], unread: 0, pv: 0 });
-const KEY = "outsider-store-v3";
+const KEY = "outsider-store-v4";
 let state: State = LIVE ? empty() : (() => { try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : seed(); } catch { return seed(); } })();
 const subs = new Set<() => void>();
 
@@ -164,6 +164,15 @@ export const actions = {
     const s = getState();
     if (s.visits?.some((v) => v.place === slug && Date.now() - v.at < 864e5)) return "You've already checked in here today.";
     set((st) => { st.visits ??= []; st.visits.unshift({ id: uid(), place: slug, at: Date.now(), bonus: false }); st.balance += tokens; st.txns.unshift({ id: uid(), label: `Checked in (QR)`, amount: tokens, at: Date.now() }); });
+    return null;
+  },
+  claimBounty: async (id: string): Promise<string | null> => {
+    const s = getState(); const b = s.bounties?.find((x) => x.id === id);
+    if (!b) return "Not found.";
+    if (b.claimed.includes(s.me)) return "You already have a spot.";
+    if (b.claimed.length >= b.slots) return "All spots are taken.";
+    if (s.balance < b.reward) return `You need ${(b.reward - s.balance).toLocaleString()} more tokens.`;
+    set((st) => { const x = st.bounties!.find((y) => y.id === id)!; x.claimed.push(st.me); st.balance -= x.reward; st.txns.unshift({ id: uid(), label: `Top reward: ${x.title}`, amount: -x.reward, at: Date.now() }); });
     return null;
   },
   saveBounty: (b: Bounty) => set((s) => { s.bounties ??= []; const i = s.bounties.findIndex((x) => x.id === b.id); if (i >= 0) s.bounties[i] = b; else s.bounties.unshift(b); }),
