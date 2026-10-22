@@ -1,10 +1,14 @@
 {
+  "id": "/",
   "name": "Outsider",
   "short_name": "Outsider",
-  "description": "Discover places worth experiencing.",
-  "start_url": "/",
+  "description": "Go out more.",
+  "start_url": "/home",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#FFFFFF",
   "theme_color": "#FF5A00",
-  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+  "launch_handler": { "client_mode": ["navigate-existing", "auto"] },
+  "handle_links": "preferred",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
 }
