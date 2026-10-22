@@ -12,7 +12,7 @@ export function MediaBadge({ media }: { media: Media[] }) {
 }
 
 // One item at a time; multi-item posts advance every 4s (pausing while a video plays).
-export function MediaGrid({ media, postId }: { media: Media[]; postId?: string }) {
+export function MediaGrid({ media, postId, priority = false }: { media: Media[]; postId?: string; priority?: boolean }) {
   const [i, setI] = useState(0);
   const [open, setOpen] = useState(false);
   const x0 = useRef(0);
@@ -29,7 +29,7 @@ export function MediaGrid({ media, postId }: { media: Media[]; postId?: string }
       onTouchEnd={(e) => { const d = e.changedTouches[0].clientX - x0.current; if (Math.abs(d) > 40) setI((x) => (x + (d < 0 ? 1 : -1) + n) % n); }}>
       <AnimatePresence initial={false}>
         <motion.button key={i} onClick={() => setOpen(true)} initial={{ opacity: 0, scale: 1.03 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.6 }} className="absolute inset-0" aria-label="Open media">
-          {m.type === "video" ? <video src={m.src} autoPlay muted loop playsInline className="size-full object-cover" onEnded={() => setI((x) => (x + 1) % n)} /> : <img src={m.src} alt="" loading="lazy" className="size-full object-cover" />}
+          {m.type === "video" ? <video src={m.src} autoPlay muted loop playsInline className="size-full object-cover" onEnded={() => setI((x) => (x + 1) % n)} /> : <img src={m.src} alt="" loading={priority && i === 0 ? "eager" : "lazy"} fetchPriority={priority && i === 0 ? "high" : "auto"} decoding="async" className="size-full object-cover" />}
         </motion.button>
       </AnimatePresence>
       <MediaBadge media={media} />

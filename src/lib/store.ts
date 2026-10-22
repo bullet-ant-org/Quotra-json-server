@@ -8,7 +8,7 @@ export interface Person { id: string; name: string; username: string; avatar: st
 export interface Media { type: "image" | "video"; src: string }
 export interface Comment { id: string; authorId: string; text: string; at: number; likes?: string[] }
 export interface Party { date: string; max: number; going: string[] }
-export interface Post { id: string; authorId: string; text: string; media: Media[]; place?: string; tags: string[]; likes: string[]; comments: Comment[]; reposts: number; at: number; party?: Party }
+export interface Post { id: string; authorId: string; text: string; media: Media[]; place?: string; tags: string[]; likes: string[]; comments: Comment[]; reposts: number; at: number; party?: Party; views?: number; shares?: number; saves?: number }
 export interface Story { id: string; authorId: string; src: string; at: number }
 export interface Highlight { id: string; name: string; cover: string; items: string[] }
 export interface Pass { id: string; place: string; title: string; perPerson: number; budget: number; date: string; claimed: string[]; active: boolean }
@@ -50,9 +50,9 @@ const seed = (): State => ({
     { id: "b1", name: "Palmfringe Beach Resort", username: "palmfringe", avatar: photo(PH.resort, 200), following: true },
   ],
   posts: [
-    { id: "p1", authorId: "u1", text: "Dawn hike at the ridge. Cloud inversion was gone by 8:30, so set that alarm. #outsider #obudu", media: [img(PH.camp), img(PH.mountain), img(PH.hills), img(PH.lake), img(PH.waterfall), img(PH.beach2)], place: "obudu-ridge-camp", tags: ["u5"], likes: ["u2", "u3"], comments: [{ id: "c1", authorId: "u2", text: "Adding this to my list 😍", at: now - 2 * h }], reposts: 4, at: now - 3 * h, party: { date: inDays(6), max: 8, going: ["u5", "u3"] } },
+    { id: "p1", authorId: "u1", text: "Dawn hike at the ridge. Cloud inversion was gone by 8:30, so set that alarm. #outsider #obudu", media: [img(PH.camp), img(PH.mountain), img(PH.hills), img(PH.lake), img(PH.waterfall), img(PH.beach2)], place: "obudu-ridge-camp", tags: ["u5"], likes: ["u2", "u3"], comments: [{ id: "c1", authorId: "u2", text: "Adding this to my list 😍", at: now - 2 * h }], reposts: 4, views: 1840, saves: 36, shares: 12, at: now - 3 * h, party: { date: inDays(6), max: 8, going: ["u5", "u3"] } },
     { id: "p2", authorId: "u2", text: "Grilled croaker and a sunset. Kora Terrace never misses. Book before 7 on Fridays.", media: [img(PH.rooftop), img(PH.food)], place: "kora-terrace-kitchen", tags: [], likes: ["u1"], comments: [], reposts: 1, at: now - 7 * h },
-    { id: "p3", authorId: "b1", text: "Weekday day passes are back 🌴 Pool, beach and lunch. Outsiders get it for 100 tokens.", media: [img(PH.resort), img(PH.pool), img(PH.beach)], place: "palmfringe-beach-resort", tags: [], likes: ["u1", "u2", "u4"], comments: [], reposts: 9, at: now - 20 * h },
+    { id: "p3", authorId: "b1", text: "Weekday day passes are back 🌴 Pool, beach and lunch. Outsiders get it for 100 tokens.", media: [img(PH.resort), img(PH.pool), img(PH.beach)], place: "palmfringe-beach-resort", tags: [], likes: ["u1", "u2", "u4"], comments: [], reposts: 9, views: 5210, saves: 88, shares: 41, at: now - 20 * h },
     { id: "p4", authorId: "u5", text: "Went out alone for the first time in months. Ten out of ten, would leave the house again.", media: [img(PH.beach2)], tags: [], likes: [], comments: [], reposts: 0, at: now - 30 * h },
     { id: "m1", authorId: "me", text: "Sunday reset at the beach 🌊 #outsider", media: [img(PH.beach), img(PH.beach2), img(PH.resort)], place: "palmfringe-beach-resort", tags: [], likes: ["u1", "u2"], comments: [], reposts: 0, at: now - 4 * d },
     { id: "m2", authorId: "me", text: "Waterfall therapy.", media: [img(PH.waterfall)], place: "ogbunike-falls-lookout", tags: [], likes: ["u5"], comments: [], reposts: 0, at: now - 6 * d },
@@ -127,7 +127,7 @@ const seed = (): State => ({
 export const POST_BONUS = 25;
 export const LIVE = !!import.meta.env.VITE_API_URL;
 const empty = (): State => ({ me: "", people: [], posts: [], stories: [], highlights: [], balance: 0, txns: [], passes: [], events: [], blocked: [], ads: [], requests: [], places: [], unread: 0, pv: 0 });
-const KEY = "outsider-store-v4";
+const KEY = "outsider-store-v5";
 const LIVE_KEY = "outsider-live-cache";
 let state: State = LIVE ? (() => { try { const c = localStorage.getItem(LIVE_KEY); return c ? { ...empty(), ...JSON.parse(c) } : empty(); } catch { return empty(); } })() : (() => { try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : seed(); } catch { return seed(); } })();
 const subs = new Set<() => void>();
@@ -149,7 +149,9 @@ export const passSlots = (p: Pass) => Math.floor(p.budget / p.perPerson);
 const msg = (from: string, m: Omit<ChatMsg, "id" | "from" | "at">): ChatMsg => ({ id: uid(), from, at: Date.now(), ...m });
 
 export const actions = {
-  toggleSave: (id: string) => set((s) => { s.saved ??= []; s.saved = s.saved.includes(id) ? s.saved.filter((x) => x !== id) : [...s.saved, id]; }),
+  toggleSave: (id: string) => set((s) => { s.saved ??= []; const on = s.saved.includes(id); s.saved = on ? s.saved.filter((x) => x !== id) : [...s.saved, id]; const p = s.posts.find((x) => x.id === id); if (p) p.saves = Math.max(0, (p.saves ?? 0) + (on ? -1 : 1)); }),
+  view: (id: string) => set((s) => { const p = s.posts.find((x) => x.id === id); if (p) p.views = (p.views ?? 0) + 1; }),
+  shared: (id: string) => set((s) => { const p = s.posts.find((x) => x.id === id); if (p) p.shares = (p.shares ?? 0) + 1; }),
   likeComment: (postId: string, cId: string) => set((s) => { const c = s.posts.find((p) => p.id === postId)?.comments.find((x) => x.id === cId); if (c) { c.likes ??= []; c.likes = c.likes.includes(s.me) ? c.likes.filter((x) => x !== s.me) : [...c.likes, s.me]; } }),
   sendMessage: (chatId: string, m: Omit<ChatMsg, "id" | "from" | "at">) => set((s) => { s.chats?.find((c) => c.id === chatId)?.messages.push(msg(s.me, m)); }),
   shareTo: (chatIds: string[], m: Omit<ChatMsg, "id" | "from" | "at">) => set((s) => { chatIds.forEach((id) => s.chats?.find((c) => c.id === id)?.messages.push(msg(s.me, m))); }),

@@ -7,9 +7,10 @@ import { actions, passSlots, person, useStore } from "../../lib/store";
 import { bySlug, destPhoto } from "../../fixtures/destinations";
 import { useTitle } from "../../lib/useTitle";
 import { FeedSkeleton } from "../../components/FeedSkeleton";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { LIVE, getState } from "../../lib/store";
 import { useAuth } from "../../lib/auth/AuthContext";
-import { loadFor } from "../../lib/remote";
+import { loadFor, loadMoreFeed } from "../../lib/remote";
 
 const side = [[HomeIcon, "Feed", "/home"], [CalendarDays, "Events", "/events"], [Clapperboard, "Reels", "/reels"], [Ticket, "Passes", "/wallet"], [Compass, "Explore", "/explore"], [MessageCircle, "Messages", "/messages"], [User, "Profile", "/profile"]] as const;
 
@@ -25,6 +26,9 @@ export default function Home() {
   const s = useStore((x) => x);
   const me = person(s, s.me);
   const posts = s.posts.filter((p) => !s.blocked.includes(p.authorId));
+  const [shown, setShown] = useState(5);
+  // Keep 4 posts loaded ahead of the one you are looking at; ask the API for more near the end.
+  const reveal = useCallback((i: number) => { setShown((n) => Math.max(n, i + 5)); if (LIVE && i + 5 >= getState().posts.length) loadMoreFeed(); }, []);
   const passes = s.passes.filter((p) => p.active && p.claimed.length < passSlots(p)).slice(0, 3);
   const suggest = s.people.filter((p) => p.id !== s.me && !p.following && !s.blocked.includes(p.id)).slice(0, 3);
 
@@ -42,7 +46,8 @@ export default function Home() {
         {refreshing && <p className="text-center text-sm font-semibold text-accent-text" role="status">Refreshing…</p>}
         <Stories />
         <Composer />
-        {posts.map((p) => <PostCard key={p.id} post={p} />)}
+        {posts.slice(0, shown).map((p, i) => <PostCard key={p.id} post={p} priority={i === 0} onVisible={() => reveal(i)} />)}
+        {shown < posts.length && <FeedSkeleton />}
         <p className="py-6 text-center text-sm text-muted">You're all caught up. Time to go outside.</p>
       </main>
 

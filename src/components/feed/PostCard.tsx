@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const fmtN = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}k` : String(n));
 import { Link, useNavigate } from "react-router-dom";
-import { Bookmark, Heart, MessageCircle, MoreHorizontal, Send, Ticket, Users } from "lucide-react";
+import { Eye, Bookmark, Heart, MessageCircle, MoreHorizontal, Send, Ticket, Users } from "lucide-react";
 import { actions, ago, person, useStore, type Post } from "../../lib/store";
 import { bySlug } from "../../fixtures/destinations";
 import { MediaGrid } from "./MediaGrid";
@@ -12,7 +14,15 @@ function RichText({ text }: { text: string }) {
   return <>{text.split(/(#\w+|@[\w.]+)/g).map((t, i) => /^[#@]/.test(t) ? <span key={i} className="font-semibold text-accent-text">{t}</span> : t)}</>;
 }
 
-export function PostCard({ post }: { post: Post }) {
+const seen = new Set<string>(); // one view per post per session
+
+export function PostCard({ post, onVisible, priority = false }: { post: Post; onVisible?: () => void; priority?: boolean }) {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { onVisible?.(); if (!seen.has(post.id)) { seen.add(post.id); actions.view(post.id); } } }, { threshold: 0.4 });
+    io.observe(el); return () => io.disconnect();
+  }, [post.id, onVisible]);
   const nav = useNavigate();
   const s = useStore((x) => x);
   const a = person(s, post.authorId);
@@ -27,7 +37,7 @@ export function PostCard({ post }: { post: Post }) {
   const profileLink = a.id === s.me ? "/profile" : `/u/${a.username}`;
 
   return (
-    <article className="relative -mx-4 bg-bg sm:mx-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:border-line">
+    <article ref={ref} className="relative -mx-4 bg-bg sm:mx-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:border-line">
       <header className="flex items-center gap-3 px-3 py-2.5">
         <Link to={profileLink} className="rounded-full bg-gradient-to-tr from-accent to-accent-text p-[2px]"><img src={a.avatar} alt="" className="size-9 rounded-full object-cover ring-2 ring-bg" /></Link>
         <div className="min-w-0 flex-1 leading-tight">
@@ -48,7 +58,7 @@ export function PostCard({ post }: { post: Post }) {
         </div>
       </header>
 
-      {post.media.length ? <div onDoubleClick={() => !liked && actions.toggleLike(post.id)}><MediaGrid media={post.media} postId={post.id} /></div>
+      {post.media.length ? <div onDoubleClick={() => !liked && actions.toggleLike(post.id)}><MediaGrid media={post.media} postId={post.id} priority={priority} /></div>
         : <p className="bg-gradient-to-br from-accent to-accent-text px-6 py-16 text-center font-display text-2xl font-bold text-white"><RichText text={post.text} /></p>}
 
       <div className="flex items-center gap-1 px-2 pt-1.5">
@@ -63,7 +73,14 @@ export function PostCard({ post }: { post: Post }) {
         {post.likes.length > 0 && <p className="font-bold">{post.likes.length === 1 ? `Liked by ${person(s, post.likes[0]).username}` : `Liked by ${person(s, post.likes[0]).username} and ${post.likes.length - 1} others`}</p>}
         {post.text && post.media.length > 0 && <p><Link to={profileLink} className="mr-1.5 font-bold">{a.username}</Link><RichText text={post.text} /></p>}
         {post.comments.length > 0 && <button onClick={() => setSheet("comments")} className="text-muted">View all {post.comments.length} comments</button>}
-        <p className="text-xs uppercase tracking-wide text-muted">{ago(post.at)} ago{post.reposts > 0 && ` · ${post.reposts} reposts`}</p>
+        <p className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5 text-xs text-muted" aria-label="Post stats">
+          <span className="inline-flex items-center gap-1"><Eye className="size-3.5" />{fmtN(post.views ?? 0)}</span>
+          <span className="inline-flex items-center gap-1"><Heart className="size-3.5" />{fmtN(post.likes.length)}</span>
+          <span className="inline-flex items-center gap-1"><MessageCircle className="size-3.5" />{fmtN(post.comments.length)}</span>
+          <span className="inline-flex items-center gap-1"><Bookmark className="size-3.5" />{fmtN(post.saves ?? 0)}</span>
+          <span className="inline-flex items-center gap-1"><Send className="size-3.5" />{fmtN((post.shares ?? 0) + post.reposts)}</span>
+          <span className="ml-auto uppercase tracking-wide">{ago(post.at)} ago</span>
+        </p>
       </div>
 
       {post.party && (

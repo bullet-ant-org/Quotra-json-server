@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bookmark, Heart, MapPin, MessageCircle, Send } from "lucide-react";
 import { actions, person, useStore } from "../../lib/store";
@@ -11,15 +11,26 @@ export default function Reels() {
   const s = useStore((x) => x);
   const reels = s.posts.filter((p) => p.media.length && !s.blocked.includes(p.authorId)).flatMap((p) => p.media.slice(0, 2).map((m, i) => ({ post: p, m, key: `${p.id}-${i}` })));
   const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [cur, setCur] = useState(0);
+  const box = useRef<HTMLDivElement>(null);
+  // Track which reel is on screen; it gets full priority, the next 4 preload, the rest stay empty.
+  useEffect(() => {
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) setCur(Number((e.target as HTMLElement).dataset.i)); }), { root: box.current, threshold: 0.6 });
+    box.current?.querySelectorAll("section").forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [reels.length]);
+  useEffect(() => { const p = reels[cur]?.post; if (p) actions.view(p.id); }, [cur]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="no-scrollbar h-[calc(100dvh-4rem)] snap-y snap-mandatory overflow-y-auto bg-black">
-      {reels.map(({ post, m, key }) => {
+    <div ref={box} className="no-scrollbar h-[calc(100dvh-4rem)] snap-y snap-mandatory overflow-y-auto overscroll-contain bg-black">
+      {reels.map(({ post, m, key }, i) => {
+        const near = i >= cur - 1 && i <= cur + 4, now = i === cur;
         const a = person(s, post.authorId); const liked = post.likes.includes(s.me); const place = post.place ? bySlug(post.place) : undefined;
         return (
-          <section key={key} className="relative mx-auto h-full max-w-md snap-start overflow-hidden">
-            {m.type === "video" ? <video src={m.src} autoPlay loop muted playsInline className="size-full object-cover" />
-              : <img src={m.src} alt="" className="size-full object-cover motion-safe:animate-[kenburns_14s_ease-in-out_infinite_alternate]" />}
+          <section key={key} data-i={i} className="relative mx-auto h-full max-w-md snap-start overflow-hidden">
+            {!near ? <div className="size-full animate-pulse bg-white/5" />
+              : m.type === "video" ? <video src={m.src} autoPlay={now} loop muted playsInline preload={now ? "auto" : "metadata"} ref={(v) => { if (v) (now ? v.play().catch(() => {}) : v.pause()); }} className="size-full object-cover" />
+              : <img src={m.src} alt="" loading={now ? "eager" : "lazy"} fetchPriority={now ? "high" : "low"} decoding="async" className={`size-full object-cover ${now ? "motion-safe:animate-[kenburns_14s_ease-in-out_infinite_alternate]" : ""}`} />}
             <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80" />
             <div className="absolute bottom-24 left-4 right-20 text-white lg:bottom-8">
               <Link to={a.id === s.me ? "/profile" : `/u/${a.username}`} className="flex items-center gap-2"><img src={a.avatar} alt="" className="size-10 rounded-full object-cover ring-2 ring-white" /><span className="font-bold">@{a.username}</span>

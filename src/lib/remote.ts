@@ -23,7 +23,7 @@ function addPeople(s: State, list: A[]) {
 }
 const mapPost = (p: A) => ({
   id: p.id, authorId: p.author?.id, text: p.text ?? "", media: (p.media ?? []) as Media[], place: p.place?.slug, tags: (p.tags ?? []).map((t: A) => t.id),
-  likes: (p.likes ?? []).map(String), comments: (p.comments ?? []).map((c: A) => ({ id: c._id ?? c.id, authorId: c.author?.id, text: c.text, at: ts(c.at) })),
+  likes: (p.likes ?? []).map(String), views: p.views ?? 0, shares: p.shares ?? 0, saves: p.saves ?? 0, comments: (p.comments ?? []).map((c: A) => ({ id: c._id ?? c.id, authorId: c.author?.id, text: c.text, at: ts(c.at) })),
   reposts: p.reposts ?? 0, at: ts(p.createdAt), party: p.party?.max ? { date: day(p.party.date), max: p.party.max, going: (p.party.going ?? []).map(String) } : undefined,
 });
 const mapPass = (p: A) => ({ id: p.id, place: p.place?.slug ?? "", title: p.title, perPerson: p.perPerson, budget: p.budget, date: day(p.date), claimed: (p.claimed ?? []).map(String), active: p.active });
@@ -47,7 +47,7 @@ export async function loadPlaces() {
 
 export async function loadUser(u: User) {
   const [feed, stories, wallet, passes, events, profile, notes, blocked] = await Promise.all([
-    get<A>("/feed"), get<A>("/stories"), get<A>("/wallet"), get<A>("/passes"), get<A>("/events"), get<A>(`/users/${u.username}`), get<A>("/notifications"), get<A>("/me/blocked"),
+    get<A>("/feed?limit=5"), get<A>("/stories"), get<A>("/wallet"), get<A>("/passes"), get<A>("/events"), get<A>(`/users/${u.username}`), get<A>("/notifications"), get<A>("/me/blocked"),
   ]);
   set((s) => {
     s.me = u.id;
@@ -89,6 +89,18 @@ export async function loadAdmin() {
   });
 }
 
+let loadingMore = false, feedDone = false;
+export async function loadMoreFeed() {
+  const last = getState().posts.at(-1);
+  if (loadingMore || feedDone || !last) return;
+  loadingMore = true;
+  try {
+    const r = await get<A>(`/feed?limit=4&before=${new Date(last.at).toISOString()}`);
+    if (!r.items.length) feedDone = true;
+    set((s) => { addPeople(s, r.items.flatMap((p: A) => [p.author, ...(p.tags ?? [])])); const ids = new Set(s.posts.map((p) => p.id)); s.posts.push(...r.items.map(mapPost).filter((p: A) => !ids.has(p.id))); });
+  } finally { loadingMore = false; }
+}
+
 let current: User | null = null;
 export async function loadFor(u: User | null) {
   current = u;
@@ -127,6 +139,8 @@ if (LIVE) {
   Object.assign(actions, {
     addPost: (p: A) => run(() => post("/posts", { text: p.text, media: p.media, place: pid(p.place), tags: p.tags, party: p.party && { date: p.party.date, max: p.party.max } })),
     toggleLike: (id: string) => run(() => post(`/posts/${id}/like`, {})),
+    view: (id: string) => { post(`/posts/${id}/view`, {}).catch(() => {}); },
+    shared: (id: string) => { post(`/posts/${id}/share`, {}).catch(() => {}); },
     comment: (id: string, text: string) => run(() => post(`/posts/${id}/comments`, { text })),
     repost: (id: string) => run(() => post(`/posts/${id}/repost`, {})),
     joinParty: (id: string) => run(() => post(`/posts/${id}/party`, {})),

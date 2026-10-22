@@ -17,7 +17,7 @@ export function ShareSheet({ item, onClose }: { item: ShareItem; onClose: () => 
   const avatar = (c: (typeof chats)[number]) => person(s, c.members.find((m) => m !== s.me)!).avatar;
   const url = `${location.origin}${item.kind === "place" ? `/destinations/${item.place}` : "/home"}`;
   const payload: Omit<ChatMsg, "id" | "from" | "at"> = item.kind === "post" ? { kind: "post", postId: item.postId } : item.kind === "place" ? { kind: "location", place: item.place } : { kind: "image", src: item.image };
-  const flash = (m: string) => { setDone(m); setTimeout(onClose, 900); };
+  const flash = (m: string) => { if (item.kind === "post") actions.shared(item.postId); setDone(m); setTimeout(onClose, 900); };
   const action = "flex flex-col items-center gap-1.5 text-xs font-semibold";
   const circle = "grid size-14 place-items-center rounded-full bg-surface";
 
