@@ -64,6 +64,10 @@ r.post("/posts/:id/comments", h(async (req, res) => {
   res.status(201).json({ comments: (await populate(Post.findById(p._id))).comments });
 }));
 
+// Lightweight counters; the client sends one view per post per session.
+r.post("/posts/:id/view", h(async (req, res) => { await Post.updateOne({ _id: req.params.id }, { $inc: { views: 1 } }); res.json({ ok: true }); }));
+r.post("/posts/:id/share", h(async (req, res) => { await Post.updateOne({ _id: req.params.id }, { $inc: { shares: 1 } }); res.json({ ok: true }); }));
+
 r.post("/posts/:id/repost", h(async (req, res) => {
   const o = await Post.findByIdAndUpdate(req.params.id, { $inc: { reposts: 1 } });
   if (!o) throw notFound();
