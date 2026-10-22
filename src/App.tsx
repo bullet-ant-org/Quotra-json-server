@@ -16,6 +16,7 @@ import Notifications from "./pages/app/Notifications";
 import Profile from "./pages/app/Profile";
 import Settings from "./pages/app/Settings";
 import { RequireAuth } from "./lib/auth/AuthContext";
+import { FeedSkeleton } from "./components/FeedSkeleton";
 import Reels from "./pages/app/Reels";
 import Events from "./pages/app/Events";
 import Referrals from "./pages/app/Referrals";
@@ -23,7 +24,7 @@ import Saved from "./pages/app/Saved";
 
 const Admin = lazy(() => import("./pages/dash/Admin"));
 const Brand = lazy(() => import("./pages/dash/Brand"));
-const wait = <p className="p-10 text-muted">Loading…</p>;
+const wait = <FeedSkeleton />;
 
 // MapLibre is heavy; keep it out of the landing bundle.
 const MapPage = lazy(() => import("./pages/MapPage"));

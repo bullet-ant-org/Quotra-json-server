@@ -6,6 +6,7 @@ import { PostCard } from "../../components/feed/PostCard";
 import { actions, passSlots, person, useStore } from "../../lib/store";
 import { bySlug, destPhoto } from "../../fixtures/destinations";
 import { useTitle } from "../../lib/useTitle";
+import { FeedSkeleton } from "../../components/FeedSkeleton";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { loadFor } from "../../lib/remote";
@@ -37,6 +38,7 @@ export default function Home() {
       </aside>
 
       <main className="min-w-0 space-y-4">
+        {posts.length === 0 && !s.stories.length && <FeedSkeleton />}
         {refreshing && <p className="text-center text-sm font-semibold text-accent-text" role="status">Refreshing…</p>}
         <Stories />
         <Composer />

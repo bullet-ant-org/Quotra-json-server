@@ -128,13 +128,14 @@ export const POST_BONUS = 25;
 export const LIVE = !!import.meta.env.VITE_API_URL;
 const empty = (): State => ({ me: "", people: [], posts: [], stories: [], highlights: [], balance: 0, txns: [], passes: [], events: [], blocked: [], ads: [], requests: [], places: [], unread: 0, pv: 0 });
 const KEY = "outsider-store-v4";
-let state: State = LIVE ? empty() : (() => { try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : seed(); } catch { return seed(); } })();
+const LIVE_KEY = "outsider-live-cache";
+let state: State = LIVE ? (() => { try { const c = localStorage.getItem(LIVE_KEY); return c ? { ...empty(), ...JSON.parse(c) } : empty(); } catch { return empty(); } })() : (() => { try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : seed(); } catch { return seed(); } })();
 const subs = new Set<() => void>();
 
 export function set(fn: (s: State) => void) {
   state = structuredClone(state);
   fn(state);
-  if (!LIVE) try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* storage full: keep in memory */ }
+  try { localStorage.setItem(LIVE ? LIVE_KEY : KEY, JSON.stringify(state)); } catch { /* storage full: keep in memory */ }
   subs.forEach((f) => f());
 }
 export const getState = () => state;

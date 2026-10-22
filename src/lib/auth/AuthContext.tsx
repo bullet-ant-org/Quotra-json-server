@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { Navigate, useLocation } from "react-router-dom";
 import { auth, type User } from "./service";
 import { disconnectSocket, loadFor } from "../remote";
+import { FeedSkeleton } from "../../components/FeedSkeleton";
 
 interface Ctx {
   user: User | null;
@@ -13,11 +14,14 @@ interface Ctx {
 const AuthCtx = createContext<Ctx | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [ready, setReady] = useState(false);
-  useEffect(() => { auth.me().then(setUser).finally(() => setReady(true)); }, []);
+  // Start from the cached user so the app opens instantly; the server check runs in the background.
+  const cached = (() => { try { return JSON.parse(localStorage.getItem("outsider-user") ?? "null") as User | null; } catch { return null; } })();
+  const [user, setUserState] = useState<User | null>(cached);
+  const [ready, setReady] = useState(!!cached);
+  const setUser = useCallback((u: User | null) => { setUserState(u); try { if (u) localStorage.setItem("outsider-user", JSON.stringify(u)); else localStorage.removeItem("outsider-user"); } catch { /* */ } }, []);
+  useEffect(() => { auth.me().then(setUser).catch(() => {}).finally(() => setReady(true)); }, [setUser]);
   useEffect(() => { loadFor(user).catch(() => {}); }, [user]);
-  const logout = useCallback(async () => { await auth.logout().catch(() => {}); disconnectSocket(); setUser(null); }, []);
+  const logout = useCallback(async () => { await auth.logout().catch(() => {}); disconnectSocket(); try { localStorage.removeItem("outsider-live-cache"); } catch { /* */ } setUser(null); }, [setUser]);
   return <AuthCtx.Provider value={{ user, ready, setUser, logout }}>{children}</AuthCtx.Provider>;
 }
 
@@ -32,7 +36,7 @@ export const homeFor = (role?: User["role"]) => (role === "admin" ? "/admin" : r
 export function RequireAuth({ children, role }: { children: ReactNode; role?: User["role"] }) {
   const { user, ready } = useAuth();
   const { pathname } = useLocation();
-  if (!ready) return <p className="p-10 text-muted">Loading…</p>;
+  if (!ready) return <FeedSkeleton />;
   if (!user) return <Navigate to={`/login?next=${encodeURIComponent(pathname)}`} replace />;
   if (role && user.role !== role) return <Navigate to={homeFor(user.role)} replace />;
   return <>{children}</>;

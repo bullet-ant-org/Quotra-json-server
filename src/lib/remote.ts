@@ -29,6 +29,9 @@ const mapPost = (p: A) => ({
 const mapPass = (p: A) => ({ id: p.id, place: p.place?.slug ?? "", title: p.title, perPerson: p.perPerson, budget: p.budget, date: day(p.date), claimed: (p.claimed ?? []).map(String), active: p.active });
 const mapEvent = (e: A) => ({ id: e.id, title: e.title, venue: e.venue, place: e.place?.slug, date: day(e.date), img: e.img ?? "", price: e.price ?? "", slots: e.slots || undefined, tokenCost: e.tokenCost, reserved: (e.reserved ?? []).map(String), host: String(e.host ?? "") });
 
+// Show the last known places instantly, then refresh.
+try { const c = localStorage.getItem("outsider-places"); if (LIVE && c) { const list: Destination[] = JSON.parse(c); destinations.splice(0, destinations.length, ...list); list.forEach((d) => d.id && placeIds.set(d.slug, d.id)); } } catch { /* no cache */ }
+
 export async function loadPlaces() {
   const { items } = await get<{ items: A[] }>("/places?limit=500");
   const mapped: Destination[] = items.map((p) => {
@@ -38,6 +41,7 @@ export async function loadPlaces() {
       facilities: p.facilities ?? [], description: p.description ?? "", hours: p.hours ?? "", hue: 24, photo: p.photos?.[0] };
   });
   destinations.splice(0, destinations.length, ...mapped);
+  try { localStorage.setItem("outsider-places", JSON.stringify(mapped)); } catch { /* full */ }
   set((s) => { s.pv = (s.pv ?? 0) + 1; });
 }
 
