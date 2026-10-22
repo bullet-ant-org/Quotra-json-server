@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import { CalendarDays, Flag, Sun, LayoutDashboard, MapPinned, Megaphone, Ticket, Users } from "lucide-react";
 import { actions, passSlots, useStore } from "../../lib/store";
-import { destinations, destPhoto, bySlug, formatNaira } from "../../fixtures/destinations";
+import { destinations, destPhoto, bySlug } from "../../fixtures/destinations";
 import { Badge, Bars, btn, btn2, Card, inputCls, Shell, Stat } from "./Shell";
 import { useTitle } from "../../lib/useTitle";
 
@@ -13,7 +13,7 @@ const nav = [
   { to: "/admin/events", label: "Events", icon: CalendarDays },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/places", label: "Places & brands", icon: MapPinned },
-  { to: "/admin/ads", label: "Ads review", icon: Megaphone },
+  { to: "/admin/ads", label: "Ads & credits", icon: Megaphone },
   { to: "/admin/reports", label: "Reports", icon: Flag },
 ];
 
@@ -179,15 +179,36 @@ function PlacesAdmin() {
 
 function AdsAdmin() {
   const s = useStore((x) => x);
+  const [st, setSt] = useState(s.adSettings ?? { pricePerCredit: 50, creditsPer1kViews: 20, minCredits: 100 });
+  const [saved, setSaved] = useState(false);
+  const cpm = st.pricePerCredit * st.creditsPer1kViews;
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {s.ads.map((a) => (
-        <Card key={a.id} className="space-y-2">
-          <div className="flex justify-between gap-2"><h3 className="font-bold">{a.title}</h3><Badge tone={a.status === "live" ? "ok" : a.status === "review" ? "warn" : "muted"}>{a.status === "review" ? "In review" : a.status}</Badge></div>
-          <p className="text-sm text-muted">{a.body}</p><p className="text-sm">Budget {formatNaira(a.budget)} · reach {a.reach.toLocaleString()}</p>
-          {a.status === "review" && <div className="flex gap-2 pt-1"><button onClick={() => actions.setAd(a.id, "paused")} className={btn2}>Reject</button><button onClick={() => actions.setAd(a.id, "live")} className={btn}>Approve</button></div>}
+    <div className="space-y-5">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat label="Ad credit revenue" value={`₦${(s.adRevenue ?? 0).toLocaleString()}`} />
+        <Stat label="Live campaigns" value={s.ads.filter((a) => a.status === "live").length} sub={`${s.ads.filter((a) => a.status === "review").length} waiting for review`} />
+        <Stat label="Cost per 1,000 views" value={`₦${cpm.toLocaleString()}`} sub="What brands pay" />
+      </div>
+      <div className="grid gap-5 xl:grid-cols-[22rem_1fr]">
+        <Card className="h-fit space-y-3">
+          <h2 className="font-display text-lg font-bold">Ad pricing</h2>
+          <label className="block space-y-1 text-sm font-semibold">Price per credit (₦)<input type="number" min={1} value={st.pricePerCredit} onChange={(e) => setSt({ ...st, pricePerCredit: +e.target.value })} className={inputCls} /></label>
+          <label className="block space-y-1 text-sm font-semibold">Credits per 1,000 views<input type="number" min={1} value={st.creditsPer1kViews} onChange={(e) => setSt({ ...st, creditsPer1kViews: +e.target.value })} className={inputCls} /></label>
+          <label className="block space-y-1 text-sm font-semibold">Minimum purchase (credits)<input type="number" min={1} value={st.minCredits} onChange={(e) => setSt({ ...st, minCredits: +e.target.value })} className={inputCls} /></label>
+          <p className="rounded-xl bg-surface p-3 text-sm">Brands pay <b>₦{cpm.toLocaleString()}</b> per 1,000 views. 1,000 credits cost <b>₦{(1000 * st.pricePerCredit).toLocaleString()}</b>.</p>
+          <button onClick={() => { actions.setAdSettings(st); setSaved(true); setTimeout(() => setSaved(false), 1500); }} className={`${btn} w-full`}>{saved ? "Saved ✓" : "Save pricing"}</button>
         </Card>
-      ))}
+        <div className="grid gap-4 md:grid-cols-2">
+          {s.ads.map((a) => (
+            <Card key={a.id} className="space-y-2">
+              {a.img && <img src={a.img} alt="" className="h-28 w-full rounded-xl object-cover" />}
+              <div className="flex justify-between gap-2"><h3 className="font-bold">{a.title}</h3><Badge tone={a.status === "live" ? "ok" : a.status === "review" ? "warn" : "muted"}>{a.status === "review" ? "In review" : a.status}</Badge></div>
+              <p className="text-sm text-muted">{a.body}</p><p className="text-xs text-muted">{a.objective ?? "reach"} · {a.city ?? "All"} · {a.credits ?? 0} credits · {a.reach.toLocaleString()} views</p>
+              {a.status === "review" && <div className="flex gap-2 pt-1"><button onClick={() => actions.setAd(a.id, "paused")} className={btn2}>Reject</button><button onClick={() => actions.setAd(a.id, "live")} className={btn}>Approve</button></div>}
+            </Card>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

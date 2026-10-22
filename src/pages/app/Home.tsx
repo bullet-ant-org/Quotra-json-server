@@ -5,6 +5,7 @@ import { Composer } from "../../components/feed/PostComposer";
 import { PostCard } from "../../components/feed/PostCard";
 import { actions, passSlots, person, useStore } from "../../lib/store";
 import { bySlug, destPhoto } from "../../fixtures/destinations";
+import type { Ad } from "../../lib/store";
 import { useTitle } from "../../lib/useTitle";
 import { FeedSkeleton } from "../../components/FeedSkeleton";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
@@ -26,6 +27,22 @@ function Slot({ id, live, children }: { id: string; live: boolean; children: Rea
   return <div ref={ref} style={live ? undefined : { height: heights.get(id) ?? 720 }}>{live ? children : null}</div>;
 }
 
+// Live brand campaigns appear in the feed after every 5th post, always labelled Sponsored.
+function Sponsored({ ad }: { ad: Ad }) {
+  const d = ad.place ? bySlug(ad.place) : undefined;
+  return (
+    <article className="relative -mx-4 mt-4 bg-bg sm:mx-0 sm:overflow-hidden sm:rounded-2xl sm:border sm:border-line">
+      <header className="flex items-center gap-3 px-3 py-2.5">
+        <img src={d ? destPhoto(d.slug, 120) : ad.img} alt="" className="size-9 rounded-full object-cover" />
+        <div className="leading-tight"><p className="text-sm font-bold">{d?.name ?? ad.title}</p><p className="text-xs text-muted">Sponsored</p></div>
+      </header>
+      {ad.img && <img src={ad.img} alt="" loading="lazy" className="aspect-[4/5] w-full object-cover" />}
+      <Link to={d ? `/destinations/${d.slug}` : "/explore"} className="flex items-center justify-between gap-3 bg-accent px-4 py-3 font-bold text-accent-ink"><span>{ad.cta ?? "Learn more"}</span><span aria-hidden="true">›</span></Link>
+      <p className="px-3.5 py-3 text-sm"><b>{ad.title}</b> {ad.body}</p>
+    </article>
+  );
+}
+
 export default function Home() {
   useTitle("Feed");
   const { user } = useAuth();
@@ -41,6 +58,7 @@ export default function Home() {
   const [shown, setShown] = useState(5);
   // Keep 4 posts loaded ahead of the one you are looking at; ask the API for more near the end.
   const [active, setActive] = useState(0);
+  const ads = s.ads.filter((a) => a.status === "live");
   const reveal = useCallback((i: number) => { setActive(i); setShown((n) => Math.max(n, i + 5)); if (LIVE && i + 5 >= getState().posts.length) loadMoreFeed(); }, []);
   const passes = s.passes.filter((p) => p.active && p.claimed.length < passSlots(p)).slice(0, 3);
   const suggest = s.people.filter((p) => p.id !== s.me && !p.following && !s.blocked.includes(p.id)).slice(0, 3);
@@ -62,6 +80,7 @@ export default function Home() {
         {posts.slice(0, shown).map((p, i) => (
           <Slot key={p.id} id={p.id} live={Math.abs(i - active) <= 4}>
             <PostCard post={p} priority={i === 0} onVisible={() => reveal(i)} />
+            {i % 5 === 4 && ads.length > 0 && <Sponsored ad={ads[Math.floor(i / 5) % ads.length]} />}
           </Slot>
         ))}
         {shown < posts.length && <FeedSkeleton />}

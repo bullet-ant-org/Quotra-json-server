@@ -14,7 +14,8 @@ export interface Highlight { id: string; name: string; cover: string; items: str
 export interface Pass { id: string; place: string; title: string; perPerson: number; budget: number; date: string; claimed: string[]; active: boolean }
 export interface EventItem { id: string; title: string; venue: string; place?: string; date: string; img: string; price: string; slots?: number; tokenCost?: number; reserved: string[]; host: string; description?: string; maxSpend?: number }
 export interface Txn { id: string; label: string; amount: number; at: number }
-export interface Ad { id: string; title: string; body: string; budget: number; status: "live" | "paused" | "review"; reach: number }
+export interface Ad { id: string; title: string; body: string; budget: number; status: "live" | "paused" | "review"; reach: number; objective?: "reach" | "visits" | "engagement"; credits?: number; spent?: number; days?: number; city?: string; interests?: string[]; ages?: [number, number]; img?: string; cta?: string; place?: string; clicks?: number }
+export interface AdSettings { pricePerCredit: number; creditsPer1kViews: number; minCredits: number }
 export interface VisitReq { id: string; from: string; date: string; people: number; note: string; status: "pending" | "accepted" | "declined" }
 export interface Place { slug: string; name: string; owner: string; status: "live" | "pending" | "rejected" }
 
@@ -29,6 +30,7 @@ export interface State {
   me: string; people: Person[]; posts: Post[]; stories: Story[]; highlights: Highlight[];
   balance: number; txns: Txn[]; passes: Pass[]; events: EventItem[]; blocked: string[];
   ads: Ad[]; requests: VisitReq[]; places: Place[];
+  adCredits?: number; adSettings?: AdSettings; adRevenue?: number;
   saved?: string[]; bounties?: Bounty[]; visits?: Visit[]; chats?: Chat[]; referral?: Referral;
   unread?: number; pv?: number; // pv bumps when the place catalogue reloads
 }
@@ -108,8 +110,11 @@ const seed = (): State => ({
       { id: "x5", from: "u2", at: now - 5 * h, kind: "text", text: "Where are we going Saturday?" },
       { id: "x6", from: "u5", at: now - 4 * h, kind: "poll", poll: { question: "Saturday plan?", options: [{ label: "Palmfringe Beach Resort", place: "palmfringe-beach-resort", votes: ["u2", "u5"] }, { label: "Kora Terrace Kitchen", place: "kora-terrace-kitchen", votes: ["u1"] }, { label: "Waveform Water Park", place: "waveform-water-park", votes: [] }] } }] },
   ],
+  adCredits: 1200,
+  adSettings: { pricePerCredit: 50, creditsPer1kViews: 20, minCredits: 100 },
+  adRevenue: 185000,
   ads: [
-    { id: "a1", title: "Weekday day pass", body: "Pool, beach and lunch. 100 tokens for outsiders.", budget: 50000, status: "live", reach: 12400 },
+    { id: "a1", title: "Weekday day pass", body: "Pool, beach and lunch. 100 tokens for outsiders.", budget: 50000, status: "live", reach: 12400, objective: "visits", credits: 600, spent: 248, days: 14, city: "Lagos", interests: ["Resorts", "Nature"], ages: [18, 35], img: photo(PH.pool, 900), cta: "Book a visit", place: "palmfringe-beach-resort", clicks: 512 },
     { id: "a2", title: "Sunset Sessions", body: "Beach party this Saturday.", budget: 30000, status: "review", reach: 0 },
   ],
   requests: [
@@ -127,7 +132,7 @@ const seed = (): State => ({
 export const POST_BONUS = 25;
 export const LIVE = !!import.meta.env.VITE_API_URL;
 const empty = (): State => ({ me: "", people: [], posts: [], stories: [], highlights: [], balance: 0, txns: [], passes: [], events: [], blocked: [], ads: [], requests: [], places: [], unread: 0, pv: 0 });
-const KEY = "outsider-store-v5";
+const KEY = "outsider-store-v6";
 const LIVE_KEY = "outsider-live-cache";
 let state: State = LIVE ? (() => { try { const c = localStorage.getItem(LIVE_KEY); return c ? { ...empty(), ...JSON.parse(c) } : empty(); } catch { return empty(); } })() : (() => { try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : seed(); } catch { return seed(); } })();
 const subs = new Set<() => void>();
@@ -218,7 +223,9 @@ export const actions = {
   setUserStatus: (id: string, status: "active" | "suspended") => set((s) => { const p = s.people.find((x) => x.id === id); if (p) p.status = status; }),
   setPlace: (slug: string, status: Place["status"]) => set((s) => { const p = s.places.find((x) => x.slug === slug); if (p) p.status = status; }),
   addPlace: (p: { name: string; category: string; address: string; city: string; state: string; lat: number; lng: number; photos: string[] }) => set((s) => { s.places.unshift({ slug: p.name.toLowerCase().replace(/\W+/g, "-"), name: p.name, owner: "b1", status: "pending" }); }),
-  addAd: (a: Omit<Ad, "id" | "status" | "reach">) => set((s) => { s.ads.unshift({ ...a, id: uid(), status: "review", reach: 0 }); }),
+  addAd: (a: Omit<Ad, "id" | "status" | "reach">) => set((s) => { s.ads.unshift({ ...a, id: uid(), status: "review", reach: 0, spent: 0, clicks: 0 }); if (a.credits) s.adCredits = (s.adCredits ?? 0) - a.credits; }),
+  buyCredits: async (credits: number): Promise<string | null> => { set((s) => { s.adCredits = (s.adCredits ?? 0) + credits; s.adRevenue = (s.adRevenue ?? 0) + credits * (s.adSettings?.pricePerCredit ?? 50); }); return null; },
+  setAdSettings: (a: AdSettings) => set((s) => { s.adSettings = a; }),
   setAd: (id: string, status: Ad["status"]) => set((s) => { s.ads.find((x) => x.id === id)!.status = status; }),
   setRequest: (id: string, status: VisitReq["status"]) => set((s) => { s.requests.find((x) => x.id === id)!.status = status; }),
   requestVisit: (note: string, date: string, people: number, _place?: string) => set((s) => { s.requests.unshift({ id: uid(), from: s.me, date, people, note, status: "pending" }); }),

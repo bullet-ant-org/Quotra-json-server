@@ -4,7 +4,8 @@ import { LIVE, } from "../../lib/store";
 import QRCode from "qrcode";
 import { Route, Routes } from "react-router-dom";
 import { CalendarDays, CreditCard, QrCode, Inbox, LayoutDashboard, MapPinned, Megaphone, Newspaper, UserCheck } from "lucide-react";
-import { actions, person, useStore } from "../../lib/store";
+import { actions, person, useStore, type Ad } from "../../lib/store";
+import { Sheet } from "../../components/Sheet";
 import { destPhoto, formatNaira } from "../../fixtures/destinations";
 import { PH, photo, fileToMedia } from "../../lib/media";
 import { Badge, Bars, btn, btn2, Card, inputCls, Shell, Stat } from "./Shell";
@@ -16,7 +17,7 @@ const nav = [
   { to: "/brand", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/brand/feed", label: "Feed", icon: Newspaper },
   { to: "/brand/places", label: "My places", icon: MapPinned },
-  { to: "/brand/ads", label: "Ads & promotions", icon: Megaphone },
+  { to: "/brand/ads", label: "Ads manager", icon: Megaphone },
   { to: "/brand/requests", label: "Visit requests", icon: UserCheck },
   { to: "/brand/qr", label: "Check-in QR", icon: QrCode },
   { to: "/brand/inbox", label: "Inbox", icon: Inbox },
@@ -157,27 +158,106 @@ function Places() {
   );
 }
 
+const OBJECTIVES = [["reach", "Reach", "Show your ad to as many nearby people as possible"], ["visits", "Visits", "Get people to tap through to your place and come over"], ["engagement", "Engagement", "More likes, comments, saves and follows"]] as const;
+const INTERESTS = ["Resorts", "Nature", "Dining", "Nightlife", "Family", "Adventure", "Culture", "Budget"];
+
+function BuyCredits({ onClose }: { onClose: () => void }) {
+  const st = useStore((x) => x.adSettings) ?? { pricePerCredit: 50, creditsPer1kViews: 20, minCredits: 100 };
+  const [n, setN] = useState(1000);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const buy = async () => {
+    setBusy(true);
+    if (LIVE) { try { location.href = (await post<{ authorizationUrl: string }>("/brand/ad-credits/buy", { credits: n })).authorizationUrl; } catch (e) { setMsg((e as Error).message); setBusy(false); } return; }
+    await actions.buyCredits(n); setMsg(`${n.toLocaleString()} credits added (demo, nothing charged).`); setBusy(false); setTimeout(onClose, 1200);
+  };
+  return (
+    <Sheet title="Buy ad credits" onClose={onClose}>
+      <div className="space-y-4 p-5">
+        <div className="grid grid-cols-3 gap-2">{[500, 1000, 2500, 5000, 10000, 25000].map((v) => <button key={v} onClick={() => setN(v)} className={`rounded-2xl border-2 p-3 text-center ${n === v ? "border-accent bg-accent-soft" : "border-line"}`}><b className="block font-display text-lg">{v.toLocaleString()}</b><span className="text-xs text-muted">≈ {Math.round((v / st.creditsPer1kViews) * 1000).toLocaleString()} views</span></button>)}</div>
+        <label className="block space-y-1 text-sm font-semibold">Custom amount<input type="number" min={st.minCredits} step={100} value={n} onChange={(e) => setN(+e.target.value)} className={inputCls} /></label>
+        <div className="flex items-end justify-between rounded-2xl bg-surface p-4"><span className="text-sm text-muted">{n.toLocaleString()} × ₦{st.pricePerCredit}</span><span className="font-display text-3xl font-extrabold">₦{(n * st.pricePerCredit).toLocaleString()}</span></div>
+        <button disabled={busy || n < st.minCredits} onClick={buy} className={`${btn} w-full py-3`}>{busy ? "Opening Paystack…" : `Pay ₦${(n * st.pricePerCredit).toLocaleString()}`}</button>
+        <p className="text-xs text-muted">Ad credits are separate from your plan. Minimum {st.minCredits} credits. Paid securely with Paystack.</p>
+        {msg && <p role="status" className="text-sm font-semibold text-accent-text">{msg}</p>}
+      </div>
+    </Sheet>
+  );
+}
+
 function Ads() {
   const s = useStore((x) => x);
-  const [f, setF] = useState({ title: "", body: "", budget: 20000 });
+  const st = s.adSettings ?? { pricePerCredit: 50, creditsPer1kViews: 20, minCredits: 100 };
+  const credits = s.adCredits ?? 0;
+  const [buy, setBuy] = useState(false);
+  const [step, setStep] = useState(0);
+  const blank = { objective: "visits" as Ad["objective"], title: "", body: "", img: "", cta: "Book a visit", place: s.places.find((p) => p.owner === "b1")?.slug ?? "", city: "Lagos", interests: [] as string[], ages: [18, 45] as [number, number], credits: 500, days: 7 };
+  const [f, setF] = useState(blank);
+  const views = Math.round((f.credits / st.creditsPer1kViews) * 1000);
+  const steps = ["Goal", "Ad", "Audience", "Budget"];
+  const ok = [true, f.title.trim() && f.body.trim(), true, f.credits >= st.minCredits && f.credits <= credits][step];
   return (
-    <div className="grid gap-5 xl:grid-cols-[22rem_1fr]">
-      <Card className="h-fit space-y-3">
-        <h2 className="font-display text-lg font-bold">Create an ad</h2>
-        <label className="block space-y-1 text-sm font-semibold">Headline<input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} className={inputCls} /></label>
-        <label className="block space-y-1 text-sm font-semibold">Message<textarea rows={3} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} className={inputCls} /></label>
-        <label className="block space-y-1 text-sm font-semibold">Budget (₦)<input type="number" min={1000} step={1000} value={f.budget} onChange={(e) => setF({ ...f, budget: +e.target.value })} className={inputCls} /></label>
-        <p className="text-xs text-muted">Ads are reviewed before they show in feeds, and always marked Sponsored.</p>
-        <button disabled={!f.title.trim() || !f.body.trim()} onClick={() => { actions.addAd(f); setF({ title: "", body: "", budget: 20000 }); }} className={`${btn} w-full`}>Submit ad</button>
-      </Card>
-      <div className="space-y-3">{s.ads.map((a) => (
-        <Card key={a.id} className="flex flex-wrap items-center gap-4">
-          <img src={photo(PH.pool, 200)} alt="" className="size-16 rounded-2xl object-cover" />
-          <div className="min-w-0 flex-1"><p className="font-bold">{a.title}</p><p className="text-sm text-muted">{a.body}</p><p className="text-xs font-semibold text-muted">{formatNaira(a.budget)} · {a.reach.toLocaleString()} reached</p></div>
-          <Badge tone={a.status === "live" ? "ok" : a.status === "review" ? "warn" : "muted"}>{a.status === "review" ? "In review" : a.status === "live" ? "Live" : "Paused"}</Badge>
-          {a.status !== "review" && <button onClick={() => actions.setAd(a.id, a.status === "live" ? "paused" : "live")} className={btn2}>{a.status === "live" ? "Pause" : "Resume"}</button>}
+    <div className="space-y-5">
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="bg-ink text-bg md:col-span-1"><p className="text-sm opacity-80">Ad credits</p><p className="font-display text-4xl font-extrabold">{credits.toLocaleString()}</p><p className="text-xs opacity-70">≈ {Math.round((credits / st.creditsPer1kViews) * 1000).toLocaleString()} views</p><button onClick={() => setBuy(true)} className="mt-3 rounded-full bg-accent px-4 py-2 text-sm font-bold text-accent-ink">Buy credits</button></Card>
+        <Stat label="Live campaigns" value={s.ads.filter((a) => a.status === "live").length} />
+        <Stat label="Total views" value={s.ads.reduce((n, a) => n + a.reach, 0)} sub={`${s.ads.reduce((n, a) => n + (a.clicks ?? 0), 0).toLocaleString()} clicks`} />
+      </div>
+      <div className="grid gap-5 xl:grid-cols-[26rem_1fr]">
+        <Card className="h-fit space-y-4">
+          <div className="flex gap-1">{steps.map((t, i) => <span key={t} className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-accent" : "bg-surface-2"}`} />)}</div>
+          <h2 className="font-display text-lg font-bold">New campaign · {steps[step]}</h2>
+          {step === 0 && <div className="space-y-2">{OBJECTIVES.map(([id, l, d]) => <button key={id} onClick={() => setF({ ...f, objective: id })} className={`w-full rounded-2xl border-2 p-3 text-left ${f.objective === id ? "border-accent bg-accent-soft" : "border-line"}`}><b className="block">{l}</b><span className="text-sm text-muted">{d}</span></button>)}</div>}
+          {step === 1 && <div className="space-y-3">
+            <label className="block space-y-1 text-sm font-semibold">Headline<input maxLength={60} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} className={inputCls} /></label>
+            <label className="block space-y-1 text-sm font-semibold">Text<textarea maxLength={200} rows={3} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} className={inputCls} /></label>
+            <label className="block space-y-1 text-sm font-semibold">Image<input type="file" accept="image/*" onChange={async (e) => { const x = e.target.files?.[0]; if (x) setF({ ...f, img: (await fileToMedia(x)).src }); }} className={inputCls} /></label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="space-y-1 text-sm font-semibold">Button<select value={f.cta} onChange={(e) => setF({ ...f, cta: e.target.value })} className={inputCls}>{["Book a visit", "Learn more", "Get directions", "Message us", "Claim offer"].map((c) => <option key={c}>{c}</option>)}</select></label>
+              <label className="space-y-1 text-sm font-semibold">Place<select value={f.place} onChange={(e) => setF({ ...f, place: e.target.value })} className={inputCls}>{s.places.filter((p) => p.owner === "b1" || p.owner === s.me).map((p) => <option key={p.slug} value={p.slug}>{p.name}</option>)}</select></label>
+            </div>
+          </div>}
+          {step === 2 && <div className="space-y-3">
+            <label className="block space-y-1 text-sm font-semibold">City<select value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} className={inputCls}>{["Lagos", "Abuja", "Port Harcourt", "Calabar", "Kano", "Enugu", "Ibadan", "All Nigeria"].map((c) => <option key={c}>{c}</option>)}</select></label>
+            <div><p className="mb-1.5 text-sm font-semibold">Interests</p><div className="flex flex-wrap gap-1.5">{INTERESTS.map((i) => { const on = f.interests.includes(i); return <button key={i} onClick={() => setF({ ...f, interests: on ? f.interests.filter((x) => x !== i) : [...f.interests, i] })} className={`rounded-full px-3 py-1.5 text-sm font-semibold ${on ? "bg-accent text-accent-ink" : "bg-surface"}`}>{i}</button>; })}</div></div>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="space-y-1 text-sm font-semibold">Age from<input type="number" min={18} max={65} value={f.ages[0]} onChange={(e) => setF({ ...f, ages: [+e.target.value, f.ages[1]] })} className={inputCls} /></label>
+              <label className="space-y-1 text-sm font-semibold">to<input type="number" min={18} max={65} value={f.ages[1]} onChange={(e) => setF({ ...f, ages: [f.ages[0], +e.target.value] })} className={inputCls} /></label>
+            </div>
+          </div>}
+          {step === 3 && <div className="space-y-3">
+            <label className="block space-y-1 text-sm font-semibold">Budget (credits) · you have {credits.toLocaleString()}<input type="range" min={st.minCredits} max={Math.max(st.minCredits, credits)} step={50} value={f.credits} onChange={(e) => setF({ ...f, credits: +e.target.value })} className="w-full accent-[var(--c-accent)]" /></label>
+            <label className="block space-y-1 text-sm font-semibold">Duration<select value={f.days} onChange={(e) => setF({ ...f, days: +e.target.value })} className={inputCls}>{[3, 7, 14, 30].map((d) => <option key={d} value={d}>{d} days</option>)}</select></label>
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="rounded-2xl bg-accent-soft p-3"><p className="font-display text-2xl font-extrabold text-accent-text">{views.toLocaleString()}</p><p className="text-xs text-muted">estimated views</p></div>
+              <div className="rounded-2xl bg-surface p-3"><p className="font-display text-2xl font-extrabold">{Math.round(f.credits / f.days)}</p><p className="text-xs text-muted">credits per day</p></div>
+            </div>
+            {f.credits > credits && <p className="text-sm text-red-600">Not enough credits. <button onClick={() => setBuy(true)} className="font-bold underline">Buy more</button></p>}
+          </div>}
+          <div className="flex gap-2">
+            {step > 0 && <button onClick={() => setStep(step - 1)} className={btn2}>Back</button>}
+            {step < 3 ? <button disabled={!ok} onClick={() => setStep(step + 1)} className={`${btn} flex-1`}>Continue</button>
+              : <button disabled={!ok} onClick={() => { actions.addAd({ ...f, budget: f.credits * st.pricePerCredit }); setF(blank); setStep(0); }} className={`${btn} flex-1`}>Launch campaign</button>}
+          </div>
+          <div className="rounded-2xl border border-line p-3"><p className="mb-2 text-xs font-semibold text-muted">Preview</p>
+            {f.img && <img src={f.img} alt="" className="mb-2 h-32 w-full rounded-xl object-cover" />}
+            <p className="text-xs font-semibold text-muted">Sponsored</p><p className="font-bold">{f.title || "Your headline"}</p><p className="text-sm text-muted">{f.body || "Your ad text appears here."}</p>
+            <span className="mt-2 inline-block rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-ink">{f.cta}</span></div>
         </Card>
-      ))}</div>
+        <div className="space-y-3">{s.ads.map((a) => { const ctr = a.reach ? ((a.clicks ?? 0) / a.reach) * 100 : 0; return (
+          <Card key={a.id} className="space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <img src={a.img ?? photo(PH.pool, 200)} alt="" className="size-14 rounded-2xl object-cover" />
+              <div className="min-w-0 flex-1"><p className="font-bold">{a.title}</p><p className="text-sm text-muted">{a.objective ?? "reach"} · {a.city ?? "All"} · {a.days ?? 7} days</p></div>
+              <Badge tone={a.status === "live" ? "ok" : a.status === "review" ? "warn" : "muted"}>{a.status === "review" ? "In review" : a.status === "live" ? "Live" : "Paused"}</Badge>
+              {a.status !== "review" && <button onClick={() => actions.setAd(a.id, a.status === "live" ? "paused" : "live")} className={btn2}>{a.status === "live" ? "Pause" : "Resume"}</button>}
+            </div>
+            <dl className="grid grid-cols-4 gap-2 text-center text-sm">{[["Views", a.reach.toLocaleString()], ["Clicks", (a.clicks ?? 0).toLocaleString()], ["CTR", `${ctr.toFixed(1)}%`], ["Spent", `${a.spent ?? 0}/${a.credits ?? "—"}`]].map(([k, v]) => <div key={k} className="rounded-xl bg-surface p-2"><dd className="font-bold">{v}</dd><dt className="text-xs text-muted">{k}</dt></div>)}</dl>
+            {a.credits ? <div className="h-1.5 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, ((a.spent ?? 0) / a.credits) * 100)}%` }} /></div> : null}
+          </Card>
+        ); })}</div>
+      </div>
+      {buy && <BuyCredits onClose={() => setBuy(false)} />}
     </div>
   );
 }

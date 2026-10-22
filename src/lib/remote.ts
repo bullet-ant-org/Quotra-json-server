@@ -71,7 +71,8 @@ export async function loadBrand(u: User) {
   set((s) => {
     s.me = u.id;
     addPeople(s, [{ ...u }, ...reqs.items.map((r: A) => r.from)]);
-    s.ads = ads.items.map((a: A) => ({ id: a.id, title: a.title, body: a.body, budget: a.budget, status: a.status === "rejected" ? "paused" : a.status, reach: a.reach }));
+    s.ads = ads.items.map((a: A) => ({ ...a, status: a.status === "rejected" ? "paused" : a.status, place: undefined }));
+    s.adCredits = ads.credits; s.adSettings = ads.settings;
     s.requests = reqs.items.map((r: A) => ({ id: r.id, from: r.from?.id, date: day(r.date), people: r.people, note: r.note, status: r.status }));
     s.places = places.items.map((p: A) => { placeIds.set(p.slug, p.id); return { slug: p.slug, name: p.name, owner: u.id, status: p.status }; });
     s.events = events.items.map(mapEvent);
@@ -79,13 +80,14 @@ export async function loadBrand(u: User) {
 }
 
 export async function loadAdmin() {
-  const [passes, events, users, places, ads] = await Promise.all([get<A>("/admin/passes"), get<A>("/admin/events"), get<A>("/admin/users"), get<A>("/admin/places"), get<A>("/admin/ads")]);
+  const [passes, events, users, places, ads, adSet] = await Promise.all([get<A>("/admin/passes"), get<A>("/admin/events"), get<A>("/admin/users"), get<A>("/admin/places"), get<A>("/admin/ads"), get<A>("/admin/ad-settings")]);
   set((s) => {
     addPeople(s, users.items);
     s.passes = passes.items.map(mapPass);
     s.events = events.items.map(mapEvent);
     s.places = places.items.map((p: A) => { placeIds.set(p.slug, p.id); return { slug: p.slug, name: p.name, owner: p.owner?.id ?? "", status: p.status }; });
-    s.ads = ads.items.map((a: A) => ({ id: a.id, title: a.title, body: a.body, budget: a.budget, status: a.status === "rejected" ? "paused" : a.status, reach: a.reach }));
+    s.ads = ads.items.map((a: A) => ({ ...a, status: a.status === "rejected" ? "paused" : a.status, place: undefined }));
+    s.adSettings = adSet.settings;
   });
 }
 
@@ -158,7 +160,8 @@ if (LIVE) {
     setUserStatus: (id: string, status: string) => run(() => request("PATCH", `/admin/users/${id}`, { status })),
     setPlace: (slug: string, status: string) => run(() => request("PATCH", `/admin/places/${pid(slug)}`, { status })),
     addPlace: (p: A) => run(() => post("/brand/places", p)),
-    addAd: (a: A) => run(() => post("/brand/ads", a)),
+    addAd: (a: A) => run(() => post("/brand/ads", { title: a.title, body: a.body, img: a.img || undefined, credits: a.credits, objective: a.objective, days: a.days, city: a.city, interests: a.interests, ages: a.ages, cta: a.cta, place: a.place })),
+    setAdSettings: (st: A) => run(() => request("PUT", "/admin/ad-settings", st)),
     setAd: (id: string, status: string) => run(() => request("PATCH", `/${current?.role === "admin" ? "admin" : "brand"}/ads/${id}`, { status })),
     setRequest: (id: string, status: string) => run(() => request("PATCH", `/brand/requests/${id}`, { status })),
     requestVisit: (note: string, date: string, people: number, place?: string) => run(() => post("/brand/visit-requests", { note, date, people, place })),

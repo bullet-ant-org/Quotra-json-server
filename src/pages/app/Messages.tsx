@@ -22,7 +22,7 @@ function Bubble({ m, chat }: { m: ChatMsg; chat: Chat }) {
   if (m.kind === "image") body = <img src={m.src} alt="" className="max-h-80 w-full object-cover" />;
   else if (m.kind === "video") body = <video src={m.src} controls className="max-h-80 w-full" />;
   else if (m.kind === "audio") body = <audio src={m.src} controls className="m-2 h-10 w-60" />;
-  else if (m.kind === "location" && d) body = <Link to={`/map?to=${d.slug}`} className="block w-64"><img src={destPhoto(d.slug, 400)} alt="" className="h-28 w-full object-cover" /><span className="block p-3"><b className="block">{d.name}</b><span className="text-xs opacity-80">📍 {d.city} · tap for directions</span></span></Link>;
+  else if (m.kind === "location" && d) body = <Link to={`/destinations/${d.slug}`} className="block w-64"><img src={destPhoto(d.slug, 400)} alt="" className="h-28 w-full object-cover" /><span className="block p-3"><b className="block">{d.name}</b><span className="text-xs opacity-80">📍 {d.city} · tap for details</span></span></Link>;
   else if (m.kind === "post" && post) body = <span className="block w-60"><img src={post.media[0]?.src} alt="" className="h-40 w-full object-cover" /><span className="block p-3 text-sm"><b>@{person(s, post.authorId).username}</b> {post.text.slice(0, 60)}</span></span>;
   else if (m.kind === "poll" && m.poll) {
     const total = m.poll.options.reduce((n, o) => n + o.votes.length, 0) || 1;
