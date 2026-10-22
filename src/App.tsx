@@ -21,6 +21,7 @@ import Reels from "./pages/app/Reels";
 import Events from "./pages/app/Events";
 import Referrals from "./pages/app/Referrals";
 import Saved from "./pages/app/Saved";
+import { CheckinLink } from "./pages/app/CheckinLink";
 
 const Admin = lazy(() => import("./pages/dash/Admin"));
 const Brand = lazy(() => import("./pages/dash/Brand"));
@@ -58,6 +59,7 @@ export default function App() {
         <Route path="events" element={guard(<Events />)} />
         <Route path="referrals" element={guard(<Referrals />)} />
         <Route path="saved" element={guard(<Saved />)} />
+        <Route path="checkin/:slug" element={guard(<CheckinLink />)} />
         <Route path="u/:username" element={guard(<Profile />)} />
         <Route path="*" element={<NotFound />} />
       </Route>

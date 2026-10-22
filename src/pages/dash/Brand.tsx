@@ -35,7 +35,7 @@ function CheckinQr() {
   const s = useStore((x) => x);
   const mine = s.places.filter((p) => p.owner === "b1" || p.owner === s.me);
   const [src, setSrc] = useState<Record<string, string>>({});
-  useEffect(() => { mine.forEach((p) => QRCode.toDataURL(`outsider:checkin:${p.slug}`, { width: 600, margin: 2, color: { dark: "#242326", light: "#ffffff" } }).then((u) => setSrc((x) => ({ ...x, [p.slug]: u })))); }, [mine.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { mine.forEach((p) => QRCode.toDataURL(`${location.origin}/checkin/${p.slug}`, { width: 600, margin: 2, color: { dark: "#242326", light: "#ffffff" } }).then((u) => setSrc((x) => ({ ...x, [p.slug]: u })))); }, [mine.length]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted">Print this and place it at your counter. Visitors scan it to check in and earn tokens, and get a bonus when they post about you.</p>

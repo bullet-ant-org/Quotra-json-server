@@ -6,7 +6,7 @@ import { actions, POST_BONUS } from "../lib/store";
 import { destinations } from "../fixtures/destinations";
 
 // Business check-in QR codes read "outsider:checkin:<place-slug>". Uses the camera where the browser supports it.
-export function ScanSheet({ onClose }: { onClose: () => void }) {
+export function ScanSheet({ onClose, initial }: { onClose: () => void; initial?: string }) {
   const video = useRef<HTMLVideoElement>(null);
   const [code, setCode] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -15,7 +15,7 @@ export function ScanSheet({ onClose }: { onClose: () => void }) {
   const nav = useNavigate();
 
   const submit = async (raw: string) => {
-    const slug = raw.trim().replace(/^outsider:checkin:/i, "");
+    const slug = raw.trim().replace(/^outsider:checkin:/i, "").replace(/^.*\/checkin\//, "").replace(/[/?#].*$/, "");
     const d = destinations.find((x) => x.slug === slug);
     if (!d) return setErr("That code isn't an Outsider check-in code.");
     const e = await actions.checkIn(d.slug, d.checkInTokens);
@@ -35,6 +35,7 @@ export function ScanSheet({ onClose }: { onClose: () => void }) {
     }).catch(() => setCam(false));
     return () => { stop = true; stream?.getTracks().forEach((t) => t.stop()); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (initial) submit(initial); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const d = destinations.find((x) => x.slug === done);
   return (
