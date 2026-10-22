@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
-import { Ad, CheckIn, Event, Pass, Place, Subscription, VisitRequest } from "../models/index.js";
+import { Ad, CheckIn, CreditPurchase, Event, Pass, Place, Subscription, User, VisitRequest, getAdSettings } from "../models/index.js";
+import { paystack } from "../lib/paystack.js";
+import { env } from "../lib/env.js";
 import { bad, forbidden, h, notFound } from "../lib/http.js";
 import { requireAuth, requireRole } from "../lib/auth.js";
 import { notify } from "../lib/notify.js";
@@ -61,11 +63,32 @@ r.patch("/places/:id", h(async (req, res) => {
   res.json({ place: p });
 }));
 
-r.get("/ads", h(async (req, res) => res.json({ items: await Ad.find({ brand: req.user._id }).sort({ createdAt: -1 }) })));
+r.get("/ads", h(async (req, res) => res.json({ items: await Ad.find({ brand: req.user._id }).sort({ createdAt: -1 }), credits: req.user.adCredits, settings: await getAdSettings() })));
+
+// Buy ad credits: one-off Paystack payment; credits land via verify or the signed webhook.
+r.post("/ad-credits/buy", h(async (req, res) => {
+  const st = await getAdSettings();
+  const { credits } = z.object({ credits: z.number().int().min(st.minCredits).max(1e6) }).parse(req.body);
+  const amount = credits * st.pricePerCredit;
+  const init = await paystack.initialize({ email: req.user.email, amount: amount * 100, callback_url: `${env.clientUrl}/brand/ads`, metadata: { type: "adcredits", brandId: req.user.id, credits } });
+  await CreditPurchase.create({ brand: req.user._id, credits, amount, reference: init.reference });
+  res.json({ authorizationUrl: init.authorization_url, reference: init.reference });
+}));
+r.get("/ad-credits/verify/:reference", h(async (req, res) => {
+  const t = await paystack.verify(req.params.reference);
+  if (t.status === "success") await creditPurchase(req.params.reference);
+  res.json({ credits: (await User.findById(req.user._id)).adCredits });
+}));
 r.post("/ads", h(async (req, res) => {
-  const d = z.object({ title: z.string().trim().min(2).max(80), body: z.string().trim().min(2).max(300), img: z.string().url().optional(), budget: z.number().min(1000) }).parse(req.body);
-  if ((await Ad.countDocuments({ brand: req.user._id, status: { $in: ["live", "review"] } })) >= (await planLimits(req.user._id)).ads) throw bad("Your plan's ad limit is reached. Upgrade to run more ads.");
-  res.status(201).json({ ad: await Ad.create({ ...d, brand: req.user._id }) });
+  const d = z.object({ title: z.string().trim().min(2).max(60), body: z.string().trim().min(2).max(200), img: z.string().url().optional(), credits: z.number().int().min(1),
+    objective: z.enum(["reach", "visits", "engagement"]).default("reach"), days: z.number().int().min(1).max(90).default(7), city: z.string().optional(), interests: z.array(z.string()).max(20).default([]),
+    ages: z.array(z.number().int()).length(2).optional(), cta: z.string().max(30).optional(), place: z.string().optional() }).parse(req.body);
+  // Reserve the campaign's credits up front; the ad then goes to review.
+  const r = await User.updateOne({ _id: req.user._id, adCredits: { $gte: d.credits } }, { $inc: { adCredits: -d.credits } });
+  if (!r.modifiedCount) throw bad("Not enough ad credits. Buy more to launch this campaign.");
+  const p = d.place ? await Place.findOne({ slug: d.place, owner: req.user._id }) : null;
+  const st = await getAdSettings();
+  res.status(201).json({ ad: await Ad.create({ ...d, place: p?._id, budget: d.credits * st.pricePerCredit, brand: req.user._id }) });
 }));
 r.patch("/ads/:id", h(async (req, res) => {
   const { status } = z.object({ status: z.enum(["live", "paused"]) }).parse(req.body);
@@ -90,5 +113,10 @@ r.post("/events", h(async (req, res) => {
   const p = d.place ? await Place.findOne({ slug: d.place, owner: req.user._id }) : null;
   res.status(201).json({ event: await Event.create({ ...d, place: p?._id, location: p?.location, host: req.user._id }) });
 }));
+
+export async function creditPurchase(reference) {
+  const p = await CreditPurchase.findOneAndUpdate({ reference, status: "pending" }, { status: "paid" });
+  if (p) await User.updateOne({ _id: p.brand }, { $inc: { adCredits: p.credits } });
+}
 
 export default r;

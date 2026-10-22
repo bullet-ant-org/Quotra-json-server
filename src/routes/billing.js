@@ -7,6 +7,7 @@ import { requireRole } from "../lib/auth.js";
 import { paystack, validSignature } from "../lib/paystack.js";
 import { env } from "../lib/env.js";
 import { paymentFailedEmail, sendMail, subscriptionEmail } from "../lib/mail.js";
+import { creditPurchase } from "./brand.js";
 
 const r = Router();
 
@@ -62,6 +63,7 @@ r.post("/cancel", requireRole("brand"), h(async (req, res) => {
 export const webhook = [express.raw({ type: "application/json" }), h(async (req, res) => {
   if (!validSignature(req.body, req.headers["x-paystack-signature"])) return res.sendStatus(401);
   const { event, data } = JSON.parse(req.body.toString());
+  if (event === "charge.success" && data?.metadata?.type === "adcredits") { await creditPurchase(data.reference); return res.sendStatus(200); }
   const user = data?.customer?.email ? await User.findOne({ email: data.customer.email.toLowerCase() }) : null;
   if (!user) return res.sendStatus(200);
   const plan = data.plan?.plan_code ? await Plan.findOne({ code: data.plan.plan_code }) : null;

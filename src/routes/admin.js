@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { Ad, CheckIn, Event, Pass, Place, Post, Report, Subscription, Txn, User } from "../models/index.js";
+import { Setting, getAdSettings, Ad, CheckIn, Event, Pass, Place, Post, Report, Subscription, Txn, User } from "../models/index.js";
 import { bad, h, notFound } from "../lib/http.js";
 import { requireRole } from "../lib/auth.js";
 import { moveTokens, tx } from "../lib/ledger.js";
@@ -76,6 +76,13 @@ r.patch("/places/:id", h(async (req, res) => {
   if (d.status && p.owner) User.findById(p.owner).select("email").then((o) => o && sendMail(o.email, `${p.name}: ${d.status}`, placeStatusEmail(p.name, d.status))).catch(() => {});
   if (d.status && p.owner) notify(p.owner, "business", `${p.name} is now ${d.status}`, "/brand/places");
   res.json({ place: p });
+}));
+
+r.get("/ad-settings", h(async (_req, res) => res.json({ settings: await getAdSettings() })));
+r.put("/ad-settings", h(async (req, res) => {
+  const value = z.object({ pricePerCredit: z.number().min(1), creditsPer1kViews: z.number().min(1), minCredits: z.number().int().min(1) }).parse(req.body);
+  await Setting.updateOne({ key: "ads" }, { value }, { upsert: true });
+  res.json({ settings: value });
 }));
 
 r.get("/ads", h(async (_req, res) => res.json({ items: await Ad.find().sort({ createdAt: -1 }).limit(200).populate("brand", "username") })));

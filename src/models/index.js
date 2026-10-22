@@ -14,7 +14,8 @@ export const User = model("User", new Schema({
   username: { type: String, required: true, unique: true, lowercase: true, trim: true, match: /^[a-z0-9._]{3,20}$/ },
   avatar: String, cover: String, bio: { type: String, maxlength: 300 }, city: String,
   interests: [String],
-  balance: { type: Number, default: 0, min: 0 }, // token wallet; only changed through ledger helpers
+  balance: { type: Number, default: 0, min: 0 },
+  adCredits: { type: Number, default: 0, min: 0 }, // brands only; bought with Paystack, separate from plans // token wallet; only changed through ledger helpers
   following: [id("User")], blocked: [id("User")],
   settings: { publicProfile: { type: Boolean, default: true }, showCheckins: { type: Boolean, default: false }, openMessages: { type: Boolean, default: false } },
   status: { type: String, enum: ["active", "suspended"], default: "active" },
@@ -68,7 +69,7 @@ export const Txn = model("Txn", new Schema({
 }, opts));
 
 export const CheckIn = model("CheckIn", new Schema({ user: id("User"), place: id("Place"), distanceM: Number, accuracyM: Number, status: String }, opts).index({ user: 1, place: 1, createdAt: -1 }));
-export const Ad = model("Ad", new Schema({ brand: id("User"), title: String, body: String, img: String, budget: Number, reach: { type: Number, default: 0 }, status: { type: String, enum: ["review", "live", "paused", "rejected"], default: "review" } }, opts));
+export const Ad = model("Ad", new Schema({ brand: id("User"), title: String, body: String, img: String, budget: Number, reach: { type: Number, default: 0 }, clicks: { type: Number, default: 0 }, credits: Number, spent: { type: Number, default: 0 }, objective: String, days: Number, city: String, interests: [String], ages: [Number], cta: String, place: id("Place"), status: { type: String, enum: ["review", "live", "paused", "rejected"], default: "review" } }, opts));
 export const VisitRequest = model("VisitRequest", new Schema({ from: id("User"), place: id("Place"), brand: id("User"), date: Date, people: Number, note: String, status: { type: String, enum: ["pending", "accepted", "declined"], default: "pending" } }, opts));
 export const Conversation = model("Conversation", new Schema({ members: [{ ...id("User"), index: true }], name: String, lastText: String, lastAt: Date }, opts));
 export const Message = model("Message", new Schema({ conversation: { ...id("Conversation"), index: true }, from: id("User"), text: String, media: [media], readBy: [id("User")] }, opts));
@@ -84,5 +85,9 @@ export const Subscription = model("Subscription", new Schema({
   brand: { ...id("User"), index: true }, plan: id("Plan"), status: { type: String, default: "pending" },
   paystackCode: String, emailToken: String, customerCode: String, nextPaymentDate: Date, reference: String,
 }, opts));
+
+export const Setting = model("Setting", new Schema({ key: { type: String, unique: true }, value: Object }, opts));
+export const CreditPurchase = model("CreditPurchase", new Schema({ brand: id("User"), credits: Number, amount: Number, reference: { type: String, unique: true }, status: { type: String, default: "pending" } }, opts));
+export const getAdSettings = async () => ({ pricePerCredit: 50, creditsPer1kViews: 20, minCredits: 100, ...((await Setting.findOne({ key: "ads" }))?.value ?? {}) });
 
 export const oid = (s) => new Types.ObjectId(s);
