@@ -43,11 +43,28 @@ r.get("/conversations/:id/messages", h(async (req, res) => {
 
 r.post("/conversations/:id/messages", h(async (req, res) => {
   const c = await member(req);
-  const { text } = z.object({ text: z.string().trim().min(1).max(4000) }).parse(req.body);
-  const m = await Message.create({ conversation: c._id, from: req.user._id, text, readBy: [req.user._id] });
-  await Conversation.updateOne({ _id: c._id }, { lastText: text.slice(0, 120), lastAt: m.createdAt });
+  const d = z.object({ kind: z.enum(["text", "image", "video", "audio", "location", "poll", "post"]).default("text"), text: z.string().trim().max(4000).optional(),
+    src: z.string().url().max(2048).optional(), place: z.string().max(120).optional(), post: z.string().regex(/^[a-f\d]{24}$/i).optional(),
+    poll: z.object({ question: z.string().trim().min(1).max(200), options: z.array(z.object({ label: z.string().trim().min(1).max(80), place: z.string().max(120).optional() })).min(2).max(10) }).optional() }).parse(req.body);
+  const need = { text: d.text, image: d.src, video: d.src, audio: d.src, location: d.place, post: d.post, poll: d.poll }[d.kind];
+  if (!need) throw bad("That message is missing its content.");
+  const m = await Message.create({ ...d, conversation: c._id, from: req.user._id, poll: d.poll && { ...d.poll, options: d.poll.options.map((o) => ({ ...o, votes: [] })) }, readBy: [req.user._id] });
+  const preview = { text: d.text, image: "📷 Photo", video: "🎬 Video", audio: "🎤 Voice note", location: "📍 Location", post: "Shared a post", poll: `📊 ${d.poll?.question}` }[d.kind];
+  await Conversation.updateOne({ _id: c._id }, { lastText: String(preview).slice(0, 120), lastAt: m.createdAt });
   emitTo(c.members, "message", { conversationId: c.id, message: m });
   res.status(201).json({ message: m });
+}));
+
+// One vote per member per poll; voting again moves your vote.
+r.post("/conversations/:id/messages/:mid/vote", h(async (req, res) => {
+  const c = await member(req);
+  const { option } = z.object({ option: z.number().int().min(0) }).parse(req.body);
+  const m = await Message.findOne({ _id: req.params.mid, conversation: c._id, kind: "poll" });
+  if (!m || option >= m.poll.options.length) throw notFound("Poll not found");
+  m.poll.options.forEach((o, i) => { o.votes = o.votes.filter((v) => !v.equals(req.user._id)); if (i === option) o.votes.push(req.user._id); });
+  await m.save();
+  emitTo(c.members, "message:update", { conversationId: c.id, message: m });
+  res.json({ message: m });
 }));
 
 r.get("/notifications", h(async (req, res) => {

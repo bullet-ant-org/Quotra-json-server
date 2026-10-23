@@ -7,7 +7,8 @@ import { notify } from "../lib/notify.js";
 import { Ad } from "../models/index.js";
 import { learn, rankFeed } from "../lib/algorithm.js";
 import { getSettings } from "../lib/settings.js";
-import { Place } from "../models/index.js";
+import { CheckIn, Place } from "../models/index.js";
+import { moveTokens, tx } from "../lib/ledger.js";
 
 const r = Router();
 // Public: prices and rewards the app displays.
@@ -51,6 +52,12 @@ r.post("/posts", h(async (req, res) => {
   if (d.party && !d.place) throw bad("Tag a place to start a going party.");
   const placeCategory = d.place ? (await Place.findById(d.place).select("category").lean())?.category : undefined;
   const p = await Post.create({ ...d, placeCategory, author: req.user._id, hashtags: [...new Set((d.text.match(/#\w+/g) ?? []).map((x) => x.slice(1).toLowerCase()))], party: d.party && { ...d.party, going: [] } });
+  // Posting at a place you checked in at in the last 24h pays a one-time bonus.
+  if (p.place) {
+    const ci = await CheckIn.findOneAndUpdate({ user: req.user._id, place: p.place, status: "rewarded", bonus: false, createdAt: { $gt: new Date(Date.now() - 864e5) } }, { bonus: true });
+    const bonus = (await getSettings()).postBonus;
+    if (ci && bonus > 0) await tx((s) => moveTokens(s, req.user._id, bonus, "bonus", "Posted after check-in", `postbonus:${ci._id}`)).catch(() => {});
+  }
   d.tags.forEach((t) => notify(t, "social", `@${req.user.username} tagged you in a post`, `/home#${p.id}`));
   res.status(201).json({ post: await populate(Post.findById(p._id)) });
 }));

@@ -34,7 +34,9 @@ async function checkOtp(addr, purpose, code) {
 }
 async function createUser(data) {
   return tx(async (s) => {
-    const [u] = await User.create([{ ...data, emailVerified: true }], { session: s });
+    const inviter = data.ref ? await User.findOne({ referralCode: String(data.ref).toLowerCase() }).select("_id").session(s) : null;
+    const { ref: _ref, ...rest } = data;
+    const [u] = await User.create([{ ...rest, emailVerified: true, referredBy: inviter?._id, referralCode: `${rest.username}${crypto.randomInt(100, 999)}`.toLowerCase() }], { session: s });
     await moveTokens(s, u._id, (await getSettings()).welcomeBonus, "bonus", "Welcome bonus", `welcome:${u._id}`);
     return u;
   }).then((u) => { sendMail(u.email, "Welcome to Outsider", welcomeEmail(u.firstName)).catch(() => {}); return u; });
@@ -59,7 +61,7 @@ r.post("/username-available", h(async (req, res) => {
 }));
 
 r.post("/register/request-otp", h(async (req, res) => {
-  const d = z.object({ firstName: z.string().trim().min(1).max(40), lastName: z.string().trim().max(40).default(""), username, email, password: z.string().min(10, "Use at least 10 characters.") }).parse(req.body);
+  const d = z.object({ firstName: z.string().trim().min(1).max(40), lastName: z.string().trim().max(40).default(""), username, email, password: z.string().min(10, "Use at least 10 characters."), ref: z.string().max(40).optional() }).parse(req.body);
   if (await User.exists({ email: d.email })) throw bad("An account with that email already exists. Log in instead.");
   if (await User.exists({ username: d.username })) throw bad(`@${d.username} is taken. Try another.`);
   const { password, ...rest } = d;
@@ -95,7 +97,7 @@ r.post("/password/verify-otp", h(async (req, res) => {
 r.get("/google", (req, res) => {
   if (!env.googleId) return res.status(503).json({ message: "Google sign-in isn't configured." });
   const state = crypto.randomBytes(16).toString("hex");
-  res.cookie("g_state", JSON.stringify({ state, next: String(req.query.next ?? "/home") }), { httpOnly: true, maxAge: 600e3, sameSite: "lax", secure: env.prod });
+  res.cookie("g_state", JSON.stringify({ state, next: String(req.query.next ?? "/home"), ref: req.query.ref ? String(req.query.ref).slice(0, 40) : undefined }), { httpOnly: true, maxAge: 600e3, sameSite: "lax", secure: env.prod });
   const q = new URLSearchParams({ client_id: env.googleId, redirect_uri: `${env.apiUrl}/v1/auth/google/callback`, response_type: "code", scope: "openid email profile", state, prompt: "select_account" });
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${q}`);
 });
@@ -113,7 +115,7 @@ r.get("/google/callback", h(async (req, res) => {
     let base = info.email.split("@")[0].toLowerCase().replace(/[^a-z0-9._]/g, "").slice(0, 14) || "outsider";
     if (base.length < 3) base += "out";
     let name = base; while (await User.exists({ username: name })) name = `${base}${crypto.randomInt(100, 9999)}`;
-    u = await createUser({ email: info.email, googleId: info.sub, firstName: info.given_name ?? "Outsider", lastName: info.family_name ?? "", username: name, avatar: info.picture });
+    u = await createUser({ email: info.email, googleId: info.sub, firstName: info.given_name ?? "Outsider", lastName: info.family_name ?? "", username: name, avatar: info.picture, ref: saved.ref });
   } else if (!u.googleId) { u.googleId = info.sub; await u.save(); }
   if (u.status === "suspended") return res.redirect(`${env.clientUrl}/login?error=suspended`);
   setSession(res, u);

@@ -1,3 +1,4 @@
+import { getSettings } from "../lib/settings.js";
 import { Router } from "express";
 import { z } from "zod";
 import { CheckIn, Place } from "../models/index.js";
@@ -54,11 +55,16 @@ r.post("/:slug/check-in", requireAuth, h(async (req, res) => {
   const recent = await CheckIn.exists({ user: req.user._id, place: p._id, status: "rewarded", createdAt: { $gt: new Date(Date.now() - 864e5) } });
   if (recent) throw bad("You've already checked in here today.");
   const day = new Date().toISOString().slice(0, 10);
+  const set = await getSettings();
+  const tokens = p.checkInTokens ?? set.checkInTokens;
   await tx(async (s) => {
     await CheckIn.create([{ user: req.user._id, place: p._id, distanceM: Math.round(dist), accuracyM: accuracy, status: "rewarded" }], { session: s });
-    await moveTokens(s, req.user._id, p.checkInTokens, "checkin", `Checked in at ${p.name}`, `checkin:${req.user._id}:${p._id}:${day}`);
+    await moveTokens(s, req.user._id, tokens, "checkin", `Checked in at ${p.name}`, `checkin:${req.user._id}:${p._id}:${day}`);
+    // Whoever invited this person earns a little every time they go out.
+    if (req.user.referredBy && set.referralPerCheckin > 0)
+      await moveTokens(s, req.user.referredBy, set.referralPerCheckin, "referral", `@${req.user.username} checked in`, `referral:${req.user._id}:${p._id}:${day}`);
   });
-  res.json({ ok: true, tokens: p.checkInTokens });
+  res.json({ ok: true, tokens, postBonus: set.postBonus });
 }));
 
 export default r;

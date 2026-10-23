@@ -36,7 +36,7 @@ export const Place = model("Place", new Schema({
   address: String, city: { type: String, index: true }, state: String, location: { type: point, required: true },
   photos: [String], facilities: [String], hours: String, priceFrom: Number, phone: String, website: String,
   rating: { type: Number, default: 0 }, reviewCount: { type: Number, default: 0 },
-  checkInTokens: { type: Number, default: 10 }, checkInRadiusM: { type: Number, default: 200 },
+  checkInTokens: Number /* unset → platform default */, checkInRadiusM: { type: Number, default: 200 },
   verified: { type: Boolean, default: false },
   status: { type: String, enum: ["pending", "live", "rejected", "closed"], default: "pending", index: true },
 }, opts).index({ location: "2dsphere" }).index({ name: "text", city: "text", description: "text", facilities: "text" }));
@@ -70,11 +70,15 @@ export const Txn = model("Txn", new Schema({
   user: { ...id("User"), index: true }, amount: Number, kind: String, label: String, ref: { type: String, unique: true, sparse: true },
 }, opts));
 
-export const CheckIn = model("CheckIn", new Schema({ user: id("User"), place: id("Place"), distanceM: Number, accuracyM: Number, status: String }, opts).index({ user: 1, place: 1, createdAt: -1 }));
+export const CheckIn = model("CheckIn", new Schema({ user: id("User"), place: id("Place"), distanceM: Number, accuracyM: Number, status: String, bonus: { type: Boolean, default: false } }, opts).index({ user: 1, place: 1, createdAt: -1 }));
 export const Ad = model("Ad", new Schema({ format: { type: String, enum: ["feed", "reel", "story"], default: "feed" }, brand: id("User"), title: String, body: String, img: String, budget: Number, reach: { type: Number, default: 0 }, clicks: { type: Number, default: 0 }, credits: Number, spent: { type: Number, default: 0 }, objective: String, days: Number, city: String, interests: [String], ages: [Number], cta: String, place: id("Place"), status: { type: String, enum: ["review", "live", "paused", "rejected"], default: "review" } }, opts));
 export const VisitRequest = model("VisitRequest", new Schema({ from: id("User"), place: id("Place"), brand: id("User"), date: Date, people: Number, note: String, status: { type: String, enum: ["pending", "accepted", "declined"], default: "pending" } }, opts));
 export const Conversation = model("Conversation", new Schema({ members: [{ ...id("User"), index: true }], name: String, lastText: String, lastAt: Date }, opts));
-export const Message = model("Message", new Schema({ conversation: { ...id("Conversation"), index: true }, from: id("User"), text: String, media: [media], readBy: [id("User")] }, opts));
+export const Message = model("Message", new Schema({ conversation: { ...id("Conversation"), index: true }, from: id("User"),
+  kind: { type: String, enum: ["text", "image", "video", "audio", "location", "poll", "post"], default: "text" }, text: String, src: String, media: [media],
+  place: String, post: id("Post"), poll: { question: String, options: [{ _id: false, label: String, place: String, votes: [id("User")] }] }, readBy: [id("User")] }, opts));
+// Seasonal top reward bought with tokens (e.g. a trip), limited spots.
+export const Bounty = model("Bounty", new Schema({ title: String, description: String, reward: Number, starts: Date, ends: Date, active: { type: Boolean, default: true }, slots: Number, claimed: [id("User")], img: String }, opts));
 export const Notification = model("Notification", new Schema({ user: { ...id("User"), index: true }, kind: String, text: String, link: String, read: { type: Boolean, default: false } }, opts));
 export const Report = model("Report", new Schema({ by: id("User"), target: String, targetId: String, reason: String, status: { type: String, default: "open" } }, opts));
 

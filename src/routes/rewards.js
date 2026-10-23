@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { Event, Pass, Txn } from "../models/index.js";
+import { Bounty, CheckIn, Event, Pass, Txn, User } from "../models/index.js";
 import { bad, h, notFound } from "../lib/http.js";
 import { requireAuth, requireRole } from "../lib/auth.js";
 import { moveTokens, tx } from "../lib/ledger.js";
@@ -66,6 +66,31 @@ r.get("/verify/:code", requireRole("brand", "admin"), h(async (req, res) => {
   if (!doc) throw notFound("Unknown code");
   const list = doc.claimed ?? doc.reserved ?? [];
   res.json({ valid: list.some((u) => String(u) === b), title: doc.title });
+}));
+
+// Top rewards: token-priced, limited spots, only inside their season window.
+r.get("/bounties", h(async (_req, res) => res.json({ items: await Bounty.find({ active: true, ends: { $gt: new Date() } }).sort({ ends: 1 }) })));
+r.post("/bounties/:id/claim", requireAuth, h(async (req, res) => {
+  const now = new Date();
+  const b = await tx(async (s) => {
+    const x = await Bounty.findOneAndUpdate({ _id: req.params.id, active: true, starts: { $lte: now }, ends: { $gt: now }, claimed: { $ne: req.user._id }, $expr: { $lt: [{ $size: "$claimed" }, "$slots"] } },
+      { $push: { claimed: req.user._id } }, { returnDocument: "after", session: s });
+    if (!x) throw bad("This reward isn't available: it's closed, full, or already yours.");
+    await moveTokens(s, req.user._id, -x.reward, "bounty", `Top reward: ${x.title}`, `bounty:${x._id}:${req.user._id}`);
+    return x;
+  });
+  notify(req.user._id, "rewards", `You got a spot: ${b.title}`, "/wallet");
+  res.json({ bounty: b });
+}));
+
+r.get("/me/referrals", requireAuth, h(async (req, res) => {
+  const u = req.user;
+  if (!u.referralCode) { u.referralCode = `${u.username}${Math.floor(100 + Math.random() * 900)}`.toLowerCase(); await User.updateOne({ _id: u._id }, { referralCode: u.referralCode }); }
+  const invited = await User.find({ referredBy: u._id }).select("firstName lastName username avatar createdAt").lean();
+  const counts = await CheckIn.aggregate([{ $match: { user: { $in: invited.map((i) => i._id) }, status: "rewarded" } }, { $group: { _id: "$user", n: { $sum: 1 } } }]);
+  const n = new Map(counts.map((c) => [String(c._id), c.n]));
+  const [earned] = await Txn.aggregate([{ $match: { user: u._id, kind: "referral" } }, { $group: { _id: null, t: { $sum: "$amount" } } }]);
+  res.json({ code: u.referralCode, earned: earned?.t ?? 0, invited: invited.map((i) => ({ id: String(i._id), username: i.username, firstName: i.firstName, avatar: i.avatar, joined: i.createdAt, checkins: n.get(String(i._id)) ?? 0 })) });
 }));
 
 export default r;

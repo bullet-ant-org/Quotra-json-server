@@ -1,7 +1,7 @@
 import { getSettings, saveSettings } from "../lib/settings.js";
 import { Router } from "express";
 import { z } from "zod";
-import { Setting, getAdSettings, Ad, CheckIn, Event, Pass, Place, Post, Report, Subscription, Txn, User } from "../models/index.js";
+import { Setting, getAdSettings, Ad, Bounty, CheckIn, Event, Pass, Place, Post, Report, Subscription, Txn, User } from "../models/index.js";
 import { bad, h, notFound } from "../lib/http.js";
 import { requireRole } from "../lib/auth.js";
 import { moveTokens, tx } from "../lib/ledger.js";
@@ -84,6 +84,15 @@ r.put("/ad-settings", h(async (req, res) => {
   const v = z.object({ pricePerCredit: z.number().min(1), creditsPer1kViews: z.number().min(1).optional(), minCredits: z.number().int().min(1) }).parse(req.body);
   await saveSettings({ pricePerCredit: v.pricePerCredit, minCredits: v.minCredits, ...(v.creditsPer1kViews ? { creditsPer1k: { feed: v.creditsPer1kViews } } : {}) });
   res.json({ settings: await getAdSettings() });
+}));
+
+const bountyZ = z.object({ title: z.string().trim().min(2).max(80), description: z.string().max(500).default(""), reward: z.number().int().min(1), starts: z.coerce.date(), ends: z.coerce.date(),
+  slots: z.number().int().min(1).max(1000), active: z.boolean().default(true), img: z.string().url().optional() });
+r.get("/bounties", h(async (_req, res) => res.json({ items: await Bounty.find().sort({ createdAt: -1 }).populate("claimed", "username firstName lastName") })));
+r.post("/bounties", h(async (req, res) => res.status(201).json({ bounty: await Bounty.create(bountyZ.parse(req.body)) })));
+r.patch("/bounties/:id", h(async (req, res) => {
+  const b = await Bounty.findByIdAndUpdate(req.params.id, bountyZ.partial().parse(req.body), { returnDocument: "after" });
+  if (!b) throw notFound(); res.json({ bounty: b });
 }));
 
 r.get("/settings", h(async (_req, res) => res.json({ settings: await getSettings() })));

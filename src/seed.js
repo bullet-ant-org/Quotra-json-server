@@ -2,7 +2,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import { env } from "./lib/env.js";
-import { Place, Plan, User, Txn } from "./models/index.js";
+import { Bounty, Place, Plan, User, Txn } from "./models/index.js";
 
 const U = (id) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=1200&q=70`;
 const places = [
@@ -40,4 +40,6 @@ for (const [slug, name, category, subcategory, city, state, lat, lng, priceFrom,
 }
 for (const p of plans) await Plan.updateOne({ name: p.name }, { $setOnInsert: p }, { upsert: true });
 console.log(`seeded ${places.length} places, ${plans.length} plans`);
+const y = new Date().getUTCFullYear();
+await Bounty.updateOne({ title: "Zanzibar summer trip for two" }, { $setOnInsert: { description: "Flights and 3 nights in Zanzibar for you and a friend.", reward: 10000, slots: 2, starts: new Date(Date.UTC(y, 5, 1)), ends: new Date(Date.UTC(y, 8, 1)), active: true } }, { upsert: true });
 await mongoose.disconnect();
