@@ -223,6 +223,13 @@ r.post("/me/highlights", h(async (req, res) => {
 }));
 r.delete("/me/highlights/:id", h(async (req, res) => { await Highlight.deleteOne({ _id: req.params.id, owner: req.user._id }); res.json({ ok: true }); }));
 
+// "Don't show me this": pushes the viewer's interest in this post's topics down hard.
+r.post("/posts/:id/not-interested", h(async (req, res) => {
+  const p = await Post.findById(req.params.id).select("hashtags placeCategory").lean();
+  if (p) await learn(req.user._id, p, "like", -6);
+  res.json({ ok: true });
+}));
+
 r.post("/reports", h(async (req, res) => {
   const d = z.object({ target: z.enum(["post", "user", "place", "comment"]), targetId: z.string(), reason: z.string().max(500) }).parse(req.body);
   await Report.create({ ...d, by: req.user._id });
