@@ -45,7 +45,7 @@ export interface State {
   balance: number; txns: Txn[]; passes: Pass[]; events: EventItem[]; blocked: string[];
   ads: Ad[]; requests: VisitReq[]; places: Place[];
   adCredits?: number; adSettings?: AdSettings; platform?: Platform; stats?: Stats; reports?: ReportItem[]; adRevenue?: number;
-  saved?: string[]; bounties?: Bounty[]; visits?: Visit[]; chats?: Chat[]; referral?: Referral;
+  saved?: string[]; hidden?: string[]; bounties?: Bounty[]; visits?: Visit[]; chats?: Chat[]; referral?: Referral;
   unread?: number; pv?: number; // pv bumps when the place catalogue reloads
 }
 
@@ -173,6 +173,8 @@ export const actions = {
   adClick: (id: string) => set((s) => { const a = s.ads.find((x) => x.id === id); if (a) a.clicks = (a.clicks ?? 0) + 1; }),
   adSeen: (id: string) => set((s) => { const a = s.ads.find((x) => x.id === id); if (a) a.reach += 1; }),
   resolveReport: (id: string, _action: "dismiss" | "remove") => set((s) => { s.reports = (s.reports ?? []).filter((r) => r.id !== id); }),
+  notInterested: (id: string) => set((s) => { s.hidden = [...(s.hidden ?? []), id]; }),
+  report: async (id: string, reason: string): Promise<string | null> => { void id; void reason; return null; },
   updateProfile: (name: string, bio: string) => set((s) => { const p = s.people.find((x) => x.id === s.me); if (p) { p.name = name; p.bio = bio; } }),
   setProfileImage: (kind: "avatar" | "cover", src: string) => set((s) => { const p = s.people.find((x) => x.id === s.me); if (p) p[kind] = src; }),
   setPlatform: (p: Platform) => set((s) => { s.platform = p; s.adSettings = { pricePerCredit: p.pricePerCredit, minCredits: p.minCredits, creditsPer1kViews: p.creditsPer1k.feed }; }),

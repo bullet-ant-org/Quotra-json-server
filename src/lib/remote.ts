@@ -167,6 +167,8 @@ if (LIVE) {
     adClick: (id: string) => { post(`/ads/${id}/click`, {}).catch(() => {}); },
     adSeen: (id: string) => { post(`/ads/${id}/impression`, {}).catch(() => {}); },
     setProfileImage: (kind: "avatar" | "cover", src: string) => { set((s) => { const p = s.people.find((x) => x.id === s.me); if (p) p[kind] = src; }); request("PATCH", "/me", { [kind]: src }).catch((e) => alert(err(e))); },
+    notInterested: (id: string) => { set((s) => { s.hidden = [...(s.hidden ?? []), id]; }); post(`/posts/${id}/not-interested`, {}).catch(() => {}); },
+    report: (id: string, reason: string) => post("/reports", { target: "post", targetId: id, reason }).then(() => null).catch((e) => err(e)),
     setPlatform: (p: A) => run(() => request("PUT", "/admin/settings", p)),
     shared: (id: string) => { post(`/posts/${id}/share`, {}).catch(() => {}); },
     comment: (id: string, text: string) => run(() => post(`/posts/${id}/comments`, { text })),
