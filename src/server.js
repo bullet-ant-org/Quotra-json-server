@@ -44,8 +44,13 @@ app.use(errorHandler);
 
 await mongoose.connect(env.mongo);
 await mongoose.syncIndexes();
+await ensureAdmin();
+await seedBase();
+await syncPaystackPlans();
 const server = http.createServer(app);
 attach(server);
 import { payCreators } from "./lib/creator.js";
+import { ensureAdmin, seedBase } from "./lib/bootstrap.js";
+import { syncPaystackPlans } from "./lib/paystack.js";
 setInterval(() => payCreators().catch((e) => console.error("creator rewards", e)), 60 * 60e3).unref();
 server.listen(env.port, () => console.log(`Outsider API on :${env.port}`));

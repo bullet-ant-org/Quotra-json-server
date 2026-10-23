@@ -1,3 +1,4 @@
+import { fillDays } from "../lib/stats.js";
 import { Router } from "express";
 import { z } from "zod";
 import { Ad, CheckIn, CreditPurchase, Event, Pass, Place, Subscription, User, VisitRequest, getAdSettings } from "../models/index.js";
@@ -36,9 +37,16 @@ r.get("/overview", h(async (req, res) => {
     CheckIn.countDocuments({ place: { $in: ids }, createdAt: { $gt: since } }),
     VisitRequest.countDocuments({ brand: req.user._id, status: "pending" }),
     Pass.aggregate([{ $match: { place: { $in: ids } } }, { $group: { _id: null, n: { $sum: { $size: "$claimed" } } } }]),
-    CheckIn.aggregate([{ $match: { place: { $in: ids }, createdAt: { $gt: since } } }, { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, n: { $sum: 1 } } }, { $sort: { _id: 1 } }]),
+    CheckIn.aggregate([{ $match: { place: { $in: ids }, createdAt: { $gt: new Date(Date.now() - 14 * 864e5) } } }, { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, n: { $sum: 1 } } }, { $sort: { _id: 1 } }]),
   ]);
-  res.json({ checkins, pendingRequests: pending, passesRedeemed: passes[0]?.n ?? 0, daily, limits: await planLimits(req.user._id) });
+  const [byPlace, repeat, followers] = await Promise.all([
+    CheckIn.aggregate([{ $match: { place: { $in: ids } } }, { $group: { _id: "$place", n: { $sum: 1 } } }, { $sort: { n: -1 } }, { $limit: 5 }, { $lookup: { from: "places", localField: "_id", foreignField: "_id", as: "p" } }, { $unwind: "$p" }]),
+    CheckIn.aggregate([{ $match: { place: { $in: ids } } }, { $group: { _id: "$user", n: { $sum: 1 } } }, { $match: { n: { $gt: 1 } } }, { $count: "n" }]),
+    User.countDocuments({ following: req.user._id }),
+  ]);
+  const weekday = Array(7).fill(0); for (const d of fillDays(daily, 14)) weekday[(new Date(d.day).getUTCDay() + 6) % 7] += d.n;
+  res.json({ checkins, pendingRequests: pending, passesRedeemed: passes[0]?.n ?? 0, daily: fillDays(daily, 14), weekday, byPlace: byPlace.map((b) => ({ label: b.p.name, value: b.n })),
+    repeatVisitors: repeat[0]?.n ?? 0, followers, limits: await planLimits(req.user._id) });
 }));
 
 r.get("/places", h(async (req, res) => res.json({ items: await Place.find({ owner: req.user._id }).sort({ createdAt: -1 }) })));
@@ -63,7 +71,7 @@ r.patch("/places/:id", h(async (req, res) => {
   res.json({ place: p });
 }));
 
-r.get("/ads", h(async (req, res) => res.json({ items: await Ad.find({ brand: req.user._id }).sort({ createdAt: -1 }), credits: req.user.adCredits, settings: await getAdSettings() })));
+r.get("/ads", h(async (req, res) => res.json({ items: await Ad.find({ brand: req.user._id }).sort({ createdAt: -1 }).populate("place", "slug name city"), credits: req.user.adCredits, settings: await getAdSettings() })));
 
 // Buy ad credits: one-off Paystack payment; credits land via verify or the signed webhook.
 r.post("/ad-credits/buy", h(async (req, res) => {
@@ -83,12 +91,15 @@ r.post("/ads", h(async (req, res) => {
   const d = z.object({ title: z.string().trim().min(2).max(60), body: z.string().trim().min(2).max(200), img: z.string().url().optional(), credits: z.number().int().min(1),
     objective: z.enum(["reach", "visits", "engagement"]).default("reach"), days: z.number().int().min(1).max(90).default(7), city: z.string().optional(), interests: z.array(z.string()).max(20).default([]),
     ages: z.array(z.number().int()).length(2).optional(), cta: z.string().max(30).optional(), format: z.enum(["feed", "reel", "story"]).default("feed"), place: z.string().optional() }).parse(req.body);
+  // An ad can point at one of the brand's own places (by slug or id).
+  const p = d.place ? await Place.findOne({ owner: req.user._id, ...(/^[a-f\d]{24}$/i.test(d.place) ? { _id: d.place } : { slug: d.place }) }) : null;
+  if (d.place && !p) throw bad("Pick one of your own places for this ad.");
   // Reserve the campaign's credits up front; the ad then goes to review.
   const r = await User.updateOne({ _id: req.user._id, adCredits: { $gte: d.credits } }, { $inc: { adCredits: -d.credits } });
   if (!r.modifiedCount) throw bad("Not enough ad credits. Buy more to launch this campaign.");
-  const p = d.place ? await Place.findOne({ slug: d.place, owner: req.user._id }) : null;
   const st = await getAdSettings();
-  res.status(201).json({ ad: await Ad.create({ ...d, place: p?._id, budget: d.credits * st.pricePerCredit, brand: req.user._id }) });
+  const ad = await Ad.create({ ...d, place: p?._id, budget: d.credits * st.pricePerCredit, brand: req.user._id });
+  res.status(201).json({ ad: await ad.populate("place", "slug name city") });
 }));
 r.patch("/ads/:id", h(async (req, res) => {
   const { status } = z.object({ status: z.enum(["live", "paused"]) }).parse(req.body);

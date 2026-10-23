@@ -6,7 +6,7 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { Otp, User } from "../models/index.js";
 import { bad, h, HttpError } from "../lib/http.js";
-import { clearSession, setSession } from "../lib/auth.js";
+import { clearSession, requireAuth, setSession } from "../lib/auth.js";
 import { otpEmail, sendMail, welcomeEmail } from "../lib/mail.js";
 import { env } from "../lib/env.js";
 import { moveTokens, tx } from "../lib/ledger.js";
@@ -43,6 +43,18 @@ async function createUser(data) {
 }
 
 r.get("/me", (req, res) => res.json({ user: req.user ?? null }));
+
+// Change your own login email and/or password (current password required).
+r.patch("/account", requireAuth, h(async (req, res) => {
+  const d = z.object({ currentPassword: z.string().min(1), email: email.optional(), password: z.string().min(8, "Use at least 8 characters.").optional() }).parse(req.body);
+  const u = await User.findById(req.user._id);
+  if (!u.passwordHash || !(await bcrypt.compare(d.currentPassword, u.passwordHash))) throw bad("Your current password isn't right.");
+  if (d.email && d.email !== u.email) { if (await User.exists({ email: d.email })) throw bad("That email is already used by another account."); u.email = d.email; }
+  if (d.password) { u.passwordHash = await bcrypt.hash(d.password, 11); u.tokenVersion = (u.tokenVersion ?? 0) + 1; }
+  await u.save();
+  setSession(res, u);
+  res.json({ user: u });
+}));
 
 r.post("/login", h(async (req, res) => {
   const { email: e, password } = z.object({ email, password: z.string().min(1) }).parse(req.body);

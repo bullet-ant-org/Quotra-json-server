@@ -1,7 +1,8 @@
+import { fillDays } from "../lib/stats.js";
 import { getSettings, saveSettings } from "../lib/settings.js";
 import { Router } from "express";
 import { z } from "zod";
-import { Setting, getAdSettings, Ad, Bounty, CheckIn, Event, Pass, Place, Post, Report, Subscription, Txn, User } from "../models/index.js";
+import { Setting, getAdSettings, Ad, Bounty, CheckIn, Event, Pass, Place, Post, Report, Subscription, CreditPurchase, Txn, User } from "../models/index.js";
 import { bad, h, notFound } from "../lib/http.js";
 import { requireRole } from "../lib/auth.js";
 import { moveTokens, tx } from "../lib/ledger.js";
@@ -18,9 +19,16 @@ r.get("/overview", h(async (_req, res) => {
     Txn.aggregate([{ $match: { amount: { $lt: 0 }, createdAt: { $gt: day } } }, { $group: { _id: null, n: { $sum: "$amount" } } }]),
     Event.aggregate([{ $group: { _id: null, n: { $sum: { $size: "$reserved" } } } }]),
     Subscription.countDocuments({ status: "active" }),
-    CheckIn.aggregate([{ $match: { createdAt: { $gt: week } } }, { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, n: { $sum: 1 } } }, { $sort: { _id: 1 } }]),
+    CheckIn.aggregate([{ $match: { createdAt: { $gt: new Date(Date.now() - 14 * 864e5) } } }, { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, n: { $sum: 1 } } }, { $sort: { _id: 1 } }]),
   ]);
-  res.json({ users, brands, pendingPlaces, tokensRedeemedToday: -(redeemedToday[0]?.n ?? 0), reservations: reservations[0]?.n ?? 0, activeSubs, checkins });
+  const [newUsers, categories, revenue, liveAds, openReports] = await Promise.all([
+    User.countDocuments({ role: "user", createdAt: { $gt: week } }),
+    CheckIn.aggregate([{ $match: { createdAt: { $gt: new Date(Date.now() - 30 * 864e5) } } }, { $lookup: { from: "places", localField: "place", foreignField: "_id", as: "p" } }, { $unwind: "$p" }, { $group: { _id: "$p.category", n: { $sum: 1 } } }, { $sort: { n: -1 } }]),
+    CreditPurchase.aggregate([{ $match: { status: "success" } }, { $group: { _id: null, n: { $sum: "$amount" } } }]),
+    Ad.countDocuments({ status: "live" }), Report.countDocuments({ status: "open" }),
+  ]);
+  res.json({ users, newUsers, brands, pendingPlaces, tokensRedeemedToday: -(redeemedToday[0]?.n ?? 0), reservations: reservations[0]?.n ?? 0, activeSubs, checkins: fillDays(checkins, 14),
+    categories: categories.map((c) => ({ label: c._id ?? "other", value: c.n })), adRevenue: revenue[0]?.n ?? 0, liveAds, openReports });
 }));
 
 // Passes: spots = floor(budget / perPerson)
@@ -98,7 +106,7 @@ r.patch("/bounties/:id", h(async (req, res) => {
 r.get("/settings", h(async (_req, res) => res.json({ settings: await getSettings() })));
 r.put("/settings", h(async (req, res) => res.json({ settings: await saveSettings(z.record(z.string(), z.any()).parse(req.body)) })));
 
-r.get("/ads", h(async (_req, res) => res.json({ items: await Ad.find().sort({ createdAt: -1 }).limit(200).populate("brand", "username") })));
+r.get("/ads", h(async (_req, res) => res.json({ items: await Ad.find().sort({ createdAt: -1 }).limit(200).populate("brand", "username").populate("place", "slug name city") })));
 r.patch("/ads/:id", h(async (req, res) => {
   const { status } = z.object({ status: z.enum(["live", "rejected", "paused"]) }).parse(req.body);
   const a = await Ad.findByIdAndUpdate(req.params.id, { status }, { returnDocument: "after" });

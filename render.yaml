@@ -1,0 +1,35 @@
+# Render Blueprint: always-on Node service (needed for Socket.IO live chat and the hourly creator-reward job).
+# Render dashboard → New → Blueprint → pick this repo/branch. Fill the env vars marked sync: false.
+services:
+  - type: web
+    name: outsider-api
+    runtime: node
+    branch: roamly-backend
+    plan: starter
+    region: frankfurt
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: JWT_SECRET
+        generateValue: true
+      - { key: MONGODB_URI, sync: false }
+      - { key: CLIENT_ORIGINS, sync: false }
+      - { key: CLIENT_URL, sync: false }
+      - { key: API_URL, sync: false }
+      - { key: ADMIN_EMAIL, sync: false }
+      - { key: ADMIN_PASSWORD, sync: false }
+      - { key: BREVO_API_KEY, sync: false }
+      - { key: MAIL_FROM_EMAIL, sync: false }
+      - { key: MAIL_FROM_NAME, value: Outsider }
+      - { key: PAYSTACK_SECRET_KEY, sync: false }
+      - { key: GOOGLE_CLIENT_ID, sync: false }
+      - { key: GOOGLE_CLIENT_SECRET, sync: false }
+      - { key: CLOUDINARY_CLOUD_NAME, sync: false }
+      - { key: CLOUDINARY_API_KEY, sync: false }
+      - { key: CLOUDINARY_API_SECRET, sync: false }

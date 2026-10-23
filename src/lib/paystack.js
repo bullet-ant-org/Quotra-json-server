@@ -28,3 +28,13 @@ export function validSignature(raw, sig) {
   const expected = crypto.createHmac("sha512", env.paystackKey).update(raw).digest("hex");
   return expected.length === sig.length && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig));
 }
+
+// Creates Paystack plans for any local plan missing a plan_code. Runs on start; skipped without a key.
+export async function syncPaystackPlans() {
+  if (!env.paystackKey) return;
+  const { Plan } = await import("../models/index.js");
+  for (const p of await Plan.find({ code: { $exists: false } })) {
+    try { const ps = await paystack.createPlan({ name: `Outsider ${p.name}`, amount: p.amount * 100, interval: p.interval, currency: "NGN" }); p.code = ps.plan_code; await p.save(); }
+    catch (e) { console.error(`Paystack plan ${p.name}:`, e.message); }
+  }
+}

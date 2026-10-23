@@ -46,6 +46,14 @@ const post = d.post.id;
   t("chat poll + vote", ps === 201 && vs === 200 && vm.message.poll.options[1].votes.length === 1);
   const [ls] = await call("u", "POST", `/conversations/${cv.conversation.id}/messages`, { kind: "location" }); t("location msg needs place", ls === 400); }
 [s, d] = await call("u", "GET", "/me/referrals"); t("referral code", typeof d.code === "string" && d.code.length > 3);
+[s, d] = await call("a", "GET", "/admin/overview"); t("admin overview real stats", s === 200 && d.checkins.length === 14 && Array.isArray(d.categories));
+[s, d] = await call("b", "GET", "/brand/overview"); t("brand overview real stats", s === 200 && d.weekday.length === 7);
+{ const [cs, cd] = await call("b", "POST", "/brand/ads", { title: "Pool day", body: "Come swim", credits: 1, format: "reel", place: "palmfringe-beach-resort" });
+  t("ad tied to own place", (cs === 201 && cd.ad.place?.slug === "palmfringe-beach-resort") || (cs === 400 && /credits/.test(cd.message)));
+  const [xs] = await call("b", "POST", "/brand/ads", { title: "Nope", body: "Not mine", credits: 1, place: "kora-terrace-kitchen" }); t("ad on someone else's place rejected", xs === 400); }
+[s] = await call("a", "PATCH", "/auth/account", { currentPassword: "wrong", password: "newpass123" }); t("account change needs current password", s === 400);
+[s] = await call("a", "PATCH", "/auth/account", { currentPassword: "12345678", password: "newpass123" }); t("admin changes password", s === 200);
+[s] = await call("a", "POST", "/auth/login", { email: "admin@gmail.com", password: "newpass123" }); t("login with new password", s === 200);
 [s] = await call("a", "POST", "/auth/logout");
 [s, d] = await call("u", "POST", "/brand/visit-requests", { place: "palmfringe-beach-resort", date: new Date().toISOString(), people: 2, note: "hi" }); t("visit request to brand", s === 201);
 [s, d] = await call("b", "GET", "/brand/requests"); t("brand sees request", d.items.length === 1);
