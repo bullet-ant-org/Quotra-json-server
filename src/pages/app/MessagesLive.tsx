@@ -1,19 +1,20 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, BadgeCheck, MessageCircle, Search, Send } from "lucide-react";
+import { ArrowLeft, BadgeCheck, BarChart3, ImageIcon, MapPin, MessageCircle, Search, Send } from "lucide-react";
 import { conversations as demoConvos } from "../../fixtures/account";
 import { Avatar } from "../../components/Avatar";
 import { get, post } from "../../lib/api";
 import { LIVE, getState } from "../../lib/store";
-import { socket } from "../../lib/remote";
+import { socket, uploadFile } from "../../lib/remote";
 import { useTitle } from "../../lib/useTitle";
 
-interface Msg { id: string; from: string; text: string; time: string }
+interface Msg { id: string; from: string; text: string; time: string; kind?: string; src?: string; place?: string; poll?: { question: string; options: { label: string; place?: string; votes: string[] }[] } }
 interface Convo { id: string; name: string; hue: number; verified?: boolean; business?: boolean; last: string; when: string; unread: number }
 
 const hm = (d: string) => new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const toMsg = (m: any): Msg => ({ id: m.id ?? m._id, from: m.from === getState().me ? "me" : "them", text: m.text, time: hm(m.createdAt) });
+const toMsg = (m: any): Msg => ({ id: m.id ?? m._id, from: m.from === getState().me ? "me" : "them", text: m.text ?? "", time: hm(m.createdAt), kind: m.kind, src: m.src, place: m.place, poll: m.poll && { question: m.poll.question, options: m.poll.options.map((o: any) => ({ ...o, votes: o.votes.map(String) })) } });
+const mapsUrl = (p: string) => (/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(p) ? `https://www.google.com/maps?q=${p}` : `/destinations/${p}`);
 const toConvo = (c: any): Convo => {
   const other = c.members.find((m: any) => m.id !== getState().me) ?? c.members[0];
   return { id: c.id, name: c.name ?? `${other?.firstName ?? ""} ${other?.lastName ?? ""}`.trim(), hue: 24, business: other?.role === "brand", verified: other?.role === "brand", last: c.lastText ?? "", when: c.lastAt ? hm(c.lastAt) : "", unread: 0 };
@@ -43,10 +44,22 @@ function Thread({ id, convo }: { id: string; convo?: Convo }) {
     get<{ items: any[] }>(`/conversations/${id}/messages`).then((r) => setMsgs(r.items.map(toMsg))).catch((e) => setErr(e.message));
     const onMsg = (p: any) => { if (p.conversationId === id) setMsgs((m) => (m.some((x) => x.id === (p.message.id ?? p.message._id)) ? m : [...m, toMsg(p.message)])); };
     const onTyping = (p: any) => { if (p.conversationId === id) { setTyping(p.user); setTimeout(() => setTyping(null), 2500); } };
-    socket?.on("message", onMsg); socket?.on("typing", onTyping);
-    return () => { socket?.off("message", onMsg); socket?.off("typing", onTyping); };
+    const onUpd = (p: any) => { if (p.conversationId === id) setMsgs((m) => m.map((x) => (x.id === (p.message.id ?? p.message._id) ? toMsg(p.message) : x))); };
+    socket?.on("message", onMsg); socket?.on("typing", onTyping); socket?.on("message:update", onUpd);
+    return () => { socket?.off("message", onMsg); socket?.off("typing", onTyping); socket?.off("message:update", onUpd); };
   }, [id]);
   useEffect(() => end.current?.scrollIntoView({ block: "end" }), [msgs, typing]);
+
+  const [pollOpen, setPollOpen] = useState(false);
+  const [poll, setPoll] = useState({ question: "", options: ["", ""] });
+  // Rich messages: photo/video, current location, polls.
+  const sendRich = async (body: Record<string, unknown>) => {
+    try { const r = await post<{ message: any }>(`/conversations/${id}/messages`, body); setMsgs((m) => (m.some((x) => x.id === r.message.id) ? m : [...m, toMsg(r.message)])); }
+    catch (e2) { setErr((e2 as Error).message); }
+  };
+  const sendLocation = () => navigator.geolocation?.getCurrentPosition((p) => sendRich({ kind: "location", place: `${p.coords.latitude.toFixed(5)},${p.coords.longitude.toFixed(5)}` }), () => setErr("Allow location to share where you are."));
+  const vote = async (mid: string, option: number) => { try { const r = await post<{ message: any }>(`/conversations/${id}/messages/${mid}/vote`, { option }); setMsgs((m) => m.map((x) => (x.id === mid ? toMsg(r.message) : x))); } catch (e2) { setErr((e2 as Error).message); } };
+  const me = getState().me;
 
   const send = async (e: FormEvent) => {
     e.preventDefault();
@@ -71,13 +84,33 @@ function Thread({ id, convo }: { id: string; convo?: Convo }) {
       <div className="flex-1 space-y-2 overflow-y-auto p-4">
         {msgs.map((m) => (
           <div key={m.id} className={`flex ${m.from === "me" ? "justify-end" : ""}`}>
-            <p className={`max-w-[80%] rounded-3xl px-4 py-2.5 ${m.from === "me" ? "rounded-br-lg bg-accent text-accent-ink" : "rounded-bl-lg bg-surface"}`}>{m.text}<span className="mt-0.5 block text-right text-[10px] opacity-70">{m.time}</span></p>
+            <p className={`max-w-[80%] rounded-3xl px-4 py-2.5 ${m.from === "me" ? "rounded-br-lg bg-accent text-accent-ink" : "rounded-bl-lg bg-surface"}`}>{m.kind === "image" ? <img src={m.src} alt="" className="max-h-72 rounded-2xl" /> : m.kind === "video" ? <video src={m.src} controls playsInline className="max-h-72 rounded-2xl" />
+              : m.kind === "audio" ? <audio src={m.src} controls className="max-w-full" />
+              : m.kind === "location" && m.place ? <a href={mapsUrl(m.place)} target={m.place.includes(",") ? "_blank" : undefined} rel="noreferrer" className="inline-flex items-center gap-1.5 font-semibold underline"><MapPin className="size-4" />Shared a location</a>
+              : m.kind === "poll" && m.poll ? <span className="block min-w-56"><b className="block pb-2">{m.poll.question}</b>{m.poll.options.map((o, i) => { const total = m.poll!.options.reduce((n, x) => n + x.votes.length, 0) || 1; const mine = o.votes.includes(me); return (
+                  <button key={i} type="button" onClick={() => vote(m.id, i)} className={`relative mb-1.5 block w-full overflow-hidden rounded-xl border px-3 py-2 text-left text-sm font-semibold ${mine ? "border-current" : "border-current/30"}`}><span className="absolute inset-y-0 left-0 bg-current opacity-15" style={{ width: `${(o.votes.length / total) * 100}%` }} /><span className="relative flex justify-between gap-3"><span>{o.label}</span><span>{o.votes.length}</span></span></button>); })}</span>
+              : m.text}<span className="mt-0.5 block text-right text-[10px] opacity-70">{m.time}</span></p>
           </div>
         ))}
         <div ref={end} />
       </div>
       {err && <p role="alert" className="px-4 pb-1 text-sm text-red-600">{err}</p>}
+      {pollOpen && LIVE && (
+        <div className="space-y-2 border-t border-line p-3">
+          <input value={poll.question} onChange={(e) => setPoll({ ...poll, question: e.target.value })} placeholder="Ask a question" className="w-full rounded-xl bg-surface px-4 py-2.5 outline-none" />
+          {poll.options.map((o, i) => <input key={i} value={o} onChange={(e) => setPoll({ ...poll, options: poll.options.map((x, k) => (k === i ? e.target.value : x)) })} placeholder={`Option ${i + 1}`} className="w-full rounded-xl bg-surface px-4 py-2 outline-none" />)}
+          <div className="flex gap-2">
+            {poll.options.length < 6 && <button type="button" onClick={() => setPoll({ ...poll, options: [...poll.options, ""] })} className="rounded-full bg-surface px-4 py-2 text-sm font-bold">Add option</button>}
+            <button type="button" disabled={!poll.question.trim() || poll.options.filter((o) => o.trim()).length < 2} onClick={() => { sendRich({ kind: "poll", poll: { question: poll.question, options: poll.options.filter((o) => o.trim()).map((label) => ({ label })) } }); setPoll({ question: "", options: ["", ""] }); setPollOpen(false); }} className="ml-auto rounded-full bg-accent px-5 py-2 text-sm font-bold text-accent-ink disabled:opacity-40">Send poll</button>
+          </div>
+        </div>
+      )}
       <form onSubmit={send} className="flex items-center gap-2 border-t border-line p-3">
+        {LIVE && <>
+          <label className="grid size-10 shrink-0 cursor-pointer place-items-center rounded-full bg-surface" aria-label="Send photo or video"><ImageIcon className="size-5" /><input type="file" accept="image/*,video/*" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const m = await uploadFile(f); sendRich({ kind: m.type, src: m.src }); } catch (e2) { setErr((e2 as Error).message); } }} /></label>
+          <button type="button" onClick={sendLocation} className="grid size-10 shrink-0 place-items-center rounded-full bg-surface" aria-label="Share location"><MapPin className="size-5" /></button>
+          <button type="button" onClick={() => setPollOpen((o) => !o)} aria-pressed={pollOpen} className="grid size-10 shrink-0 place-items-center rounded-full bg-surface" aria-label="Create poll"><BarChart3 className="size-5" /></button>
+        </>}
         <label htmlFor="msg" className="sr-only">Message</label>
         <input id="msg" value={text} onChange={(e) => { setText(e.target.value); setErr(null); socket?.emit("typing", { conversationId: id }); }} placeholder="Write a message" className="min-w-0 flex-1 rounded-full bg-surface px-5 py-3 outline-none focus:ring-2 focus:ring-accent" />
         <button className="grid size-12 shrink-0 place-items-center rounded-full bg-accent text-accent-ink" aria-label="Send"><Send className="size-5" /></button>

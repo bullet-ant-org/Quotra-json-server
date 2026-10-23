@@ -65,7 +65,13 @@ export async function loadUser(u: User) {
     s.blocked = blocked.items.map((b: A) => b.id);
     s.unread = notes.unread;
   });
+  // Optional extras: older backends may not have them.
+  get<A>("/bounties").then((r) => set((s) => { s.bounties = r.items.map(mapBounty); })).catch(() => {});
+  get<A>("/me/referrals").then((r) => set((s) => { addPeople(s, r.invited.map((i: A) => ({ ...i, lastName: "" }))); s.referral = { code: r.code, earned: r.earned, invited: r.invited.map((i: A) => ({ id: i.id, joined: ts(i.joined), checkins: i.checkins })) }; })).catch(() => {});
+  get<A>("/settings").then((r) => set((s) => { s.platform = { ...(s.platform ?? {}), ...r.settings }; })).catch(() => {});
 }
+const mapBounty = (b: A) => ({ id: b.id, title: b.title, description: b.description ?? "", reward: b.reward, starts: String(b.starts).slice(0, 10), ends: String(b.ends).slice(0, 10), active: b.active, slots: b.slots, claimed: (b.claimed ?? []).map((c: A) => String(c.id ?? c)), img: b.img });
+const toBounty = (b: A) => ({ title: b.title, description: b.description, reward: b.reward, starts: b.starts, ends: b.ends, active: b.active, slots: b.slots, ...(b.img?.startsWith("http") ? { img: b.img } : {}) });
 
 export async function loadBrand(u: User) {
   const [ads, reqs, places, events] = await Promise.all([get<A>("/brand/ads"), get<A>("/brand/requests"), get<A>("/brand/places"), get<A>("/brand/events")]);
@@ -91,6 +97,7 @@ export async function loadAdmin() {
     s.adSettings = adSet.settings;
     request<{ settings: A }>("GET", "/admin/settings").then((r) => set((x) => { x.platform = r.settings; })).catch(() => {});
   });
+  get<A>("/admin/bounties").then((r) => set((x) => { x.bounties = r.items.map(mapBounty); })).catch(() => {});
 }
 
 // Served ads arrive mixed into the feed; keep them with the store's ads so Home and Reels can place them.
@@ -161,6 +168,15 @@ if (LIVE) {
     addStory: (src: string) => run(() => post("/stories", { src })),
     addHighlight: (name: string, items: string[]) => run(() => post("/me/highlights", { name, items })),
     claimPass: (id: string) => tryRun(() => post(`/passes/${id}/claim`, {})),
+    claimBounty: (id: string) => tryRun(() => post(`/bounties/${id}/claim`, {})),
+    saveBounty: (b: A) => run(() => (/^[a-f\d]{24}$/i.test(String(b.id)) ? request("PATCH", `/admin/bounties/${b.id}`, toBounty(b)) : post("/admin/bounties", toBounty(b)))),
+    // QR check-in still needs the phone's position: the server verifies you're at the venue.
+    checkIn: (slug: string) => new Promise<string | null>((done) => {
+      if (!navigator.geolocation) return done("This device can't share its location.");
+      navigator.geolocation.getCurrentPosition(
+        (p) => tryRun(() => post(`/places/${slug}/check-in`, { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy })).then(done),
+        () => done("Allow location so we can confirm you're at the place."), { enableHighAccuracy: true, timeout: 15000 });
+    }),
     reserve: (id: string) => tryRun(() => post(`/events/${id}/reserve`, {})),
     createPass: (p: A) => run(() => post("/admin/passes", p)),
     togglePass: (id: string) => run(() => request("PATCH", `/admin/passes/${id}`, { active: !getState().passes.find((x) => x.id === id)?.active })),
