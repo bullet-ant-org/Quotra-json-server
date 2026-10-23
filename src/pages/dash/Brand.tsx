@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { get, post } from "../../lib/api";
 import { LIVE, } from "../../lib/store";
 import QRCode from "qrcode";
-import { Route, Routes } from "react-router-dom";
+import { Link, Route, Routes } from "react-router-dom";
 import { CalendarDays, CreditCard, QrCode, Inbox, LayoutDashboard, MapPinned, Megaphone, Newspaper, UserCheck } from "lucide-react";
 import { actions, person, useStore, type Ad } from "../../lib/store";
 import { Sheet } from "../../components/Sheet";
 import { destPhoto, formatNaira } from "../../fixtures/destinations";
 import { PH, photo, fileToMedia } from "../../lib/media";
-import { Badge, Bars, btn, btn2, Card, inputCls, Shell, Stat } from "./Shell";
+import { Area, Badge, Bars, btn, btn2, Card, Donut, inputCls, Shell, Stat, Tile } from "./Shell";
 import Home from "../app/Home";
 import Messages from "../app/Messages";
 import { useTitle } from "../../lib/useTitle";
@@ -108,19 +108,29 @@ function Requests({ limit }: { limit?: number }) {
 
 function Overview() {
   const s = useStore((x) => x);
+  const live = s.ads.filter((a) => a.status === "live");
+  const reach = live.reduce((n, a) => n + a.reach, 0), clicks = live.reduce((n, a) => n + (a.clicks ?? 0), 0);
   return (
-    <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Profile views (7 days)" value={8420} sub="+18% vs last week" />
-        <Stat label="Direction taps" value={1206} />
-        <Stat label="Pending visit requests" value={s.requests.filter((r) => r.status === "pending").length} />
-        <Stat label="Passes redeemed" value={s.passes.filter((p) => p.place === "palmfringe-beach-resort").reduce((n, p) => n + p.claimed.length, 0)} sub="Funded by Outsider" />
-      </div>
-      <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
-        <Card><h2 className="font-display text-lg font-bold">Visitors this week</h2><p className="mb-4 text-sm text-muted">Verified check-ins at your places</p>
-          <Bars data={[["Mon", 42], ["Tue", 38], ["Wed", 51], ["Thu", 47], ["Fri", 88], ["Sat", 132], ["Sun", 117]].map(([label, value]) => ({ label: label as string, value: value as number }))} /></Card>
-        <Card><h2 className="mb-3 font-display text-lg font-bold">Latest requests</h2><Requests limit={2} /></Card>
-      </div>
+    <div className="grid auto-rows-[minmax(7.5rem,auto)] gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      <Tile label="Visitors · 14 days" value={1_036} sub="+18% vs previous" className="sm:col-span-2 sm:row-span-2 xl:col-span-4">
+        <div className="h-40"><Area data={[42, 38, 51, 47, 88, 132, 117, 49, 44, 58, 61, 97, 141, 126]} /></div>
+      </Tile>
+      <Tile hot label="Ad credits" value={(s.adCredits ?? 0).toLocaleString()} sub={`${live.length} live campaigns`} className="xl:col-span-2"><Link to="/brand/ads" className="inline-block rounded-full bg-white/20 px-4 py-2 text-sm font-bold">Top up / new ad</Link></Tile>
+      <Tile label="Profile views" value={8420} sub="7 days" />
+      <Tile label="Direction taps" value={1206} sub="people heading your way" />
+      <Tile label="Ad performance" className="sm:col-span-2 xl:col-span-2">
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between"><span className="text-muted">Views</span><b>{reach.toLocaleString()}</b></div>
+          <div className="flex justify-between"><span className="text-muted">Taps</span><b>{clicks.toLocaleString()}</b></div>
+          <div className="flex justify-between"><span className="text-muted">Tap rate</span><b>{reach ? ((clicks / reach) * 100).toFixed(1) : "0.0"}%</b></div>
+          <div className="h-2 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, reach ? (clicks / reach) * 1000 : 0)}%` }} /></div>
+        </div>
+      </Tile>
+      <Tile label="Who visits" className="sm:col-span-2 xl:col-span-2"><Donut center="1k" data={[{ label: "18–24", value: 34 }, { label: "25–34", value: 41 }, { label: "35–44", value: 17 }, { label: "45+", value: 8 }]} /></Tile>
+      <Tile label="Pending visit requests" value={s.requests.filter((r) => r.status === "pending").length} />
+      <Tile label="Passes redeemed" value={s.passes.filter((p) => p.place === "palmfringe-beach-resort").reduce((n, p) => n + p.claimed.length, 0)} sub="Funded by Outsider" />
+      <Tile label="Latest requests" className="sm:col-span-2 xl:col-span-3"><Requests limit={2} /></Tile>
+      <Tile label="Busiest days" className="sm:col-span-2 xl:col-span-3"><Bars data={[["Mon", 42], ["Tue", 38], ["Wed", 51], ["Thu", 47], ["Fri", 88], ["Sat", 132], ["Sun", 117]].map(([label, value]) => ({ label: label as string, value: value as number }))} /></Tile>
     </div>
   );
 }
@@ -191,7 +201,7 @@ function Ads() {
   const credits = s.adCredits ?? 0;
   const [buy, setBuy] = useState(false);
   const [step, setStep] = useState(0);
-  const blank = { objective: "visits" as Ad["objective"], title: "", body: "", img: "", cta: "Book a visit", place: s.places.find((p) => p.owner === "b1")?.slug ?? "", city: "Lagos", interests: [] as string[], ages: [18, 45] as [number, number], credits: 500, days: 7 };
+  const blank = { format: "feed" as NonNullable<Ad["format"]>, objective: "visits" as Ad["objective"], title: "", body: "", img: "", cta: "Book a visit", place: s.places.find((p) => p.owner === "b1")?.slug ?? "", city: "Lagos", interests: [] as string[], ages: [18, 45] as [number, number], credits: 500, days: 7 };
   const [f, setF] = useState(blank);
   const views = Math.round((f.credits / st.creditsPer1kViews) * 1000);
   const steps = ["Goal", "Ad", "Audience", "Budget"];
@@ -207,7 +217,10 @@ function Ads() {
         <Card className="h-fit space-y-4">
           <div className="flex gap-1">{steps.map((t, i) => <span key={t} className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-accent" : "bg-surface-2"}`} />)}</div>
           <h2 className="font-display text-lg font-bold">New campaign · {steps[step]}</h2>
-          {step === 0 && <div className="space-y-2">{OBJECTIVES.map(([id, l, d]) => <button key={id} onClick={() => setF({ ...f, objective: id })} className={`w-full rounded-2xl border-2 p-3 text-left ${f.objective === id ? "border-accent bg-accent-soft" : "border-line"}`}><b className="block">{l}</b><span className="text-sm text-muted">{d}</span></button>)}</div>}
+          {step === 0 && <div className="space-y-2">{OBJECTIVES.map(([id, l, d]) => <button key={id} onClick={() => setF({ ...f, objective: id })} className={`w-full rounded-2xl border-2 p-3 text-left ${f.objective === id ? "border-accent bg-accent-soft" : "border-line"}`}><b className="block">{l}</b><span className="text-sm text-muted">{d}</span></button>)}
+            <p className="pt-2 text-sm font-semibold">Where it shows</p>
+            <div className="grid grid-cols-3 gap-2">{(["feed", "reel", "story"] as const).filter((k) => (s.platform?.adFormats ?? { feed: true, reel: true, story: false })[k]).map((k) => <button key={k} onClick={() => setF({ ...f, format: k })} className={`rounded-2xl border-2 p-2.5 text-sm font-bold ${f.format === k ? "border-accent bg-accent-soft" : "border-line"}`}>{k === "feed" ? "Feed post" : k === "reel" ? "Reel" : "Story"}<span className="block text-xs font-normal text-muted">{s.platform?.creditsPer1k[k] ?? { feed: 20, reel: 30, story: 15 }[k]} cr / 1k</span></button>)}</div>
+          </div>}
           {step === 1 && <div className="space-y-3">
             <label className="block space-y-1 text-sm font-semibold">Headline<input maxLength={60} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} className={inputCls} /></label>
             <label className="block space-y-1 text-sm font-semibold">Text<textarea maxLength={200} rows={3} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} className={inputCls} /></label>

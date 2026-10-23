@@ -14,8 +14,19 @@ export interface Highlight { id: string; name: string; cover: string; items: str
 export interface Pass { id: string; place: string; title: string; perPerson: number; budget: number; date: string; claimed: string[]; active: boolean }
 export interface EventItem { id: string; title: string; venue: string; place?: string; date: string; img: string; price: string; slots?: number; tokenCost?: number; reserved: string[]; host: string; description?: string; maxSpend?: number }
 export interface Txn { id: string; label: string; amount: number; at: number }
-export interface Ad { id: string; title: string; body: string; budget: number; status: "live" | "paused" | "review"; reach: number; objective?: "reach" | "visits" | "engagement"; credits?: number; spent?: number; days?: number; city?: string; interests?: string[]; ages?: [number, number]; img?: string; cta?: string; place?: string; clicks?: number }
+export interface Ad { id: string; format?: Placement; title: string; body: string; budget: number; status: "live" | "paused" | "review"; reach: number; objective?: "reach" | "visits" | "engagement"; credits?: number; spent?: number; days?: number; city?: string; interests?: string[]; ages?: [number, number]; img?: string; cta?: string; place?: string; clicks?: number }
 export interface AdSettings { pricePerCredit: number; creditsPer1kViews: number; minCredits: number }
+export type Placement = "feed" | "reel" | "story";
+// Every platform price and reward; mirrors the backend's settings DEFAULTS.
+export interface Platform {
+  pricePerCredit: number; minCredits: number; creditsPer1k: Record<Placement, number>; adEvery: number; adFormats: Record<Placement, boolean>;
+  checkInTokens: number; postBonus: number; referralPerCheckin: number; welcomeBonus: number;
+  creator: { per1kViews: number; per1kLikes: number; per100Comments: number; maxPerPostPerDay: number };
+  exploreRate: number; testAudience: number; minEngagementRate: number;
+}
+export const PLATFORM: Platform = { pricePerCredit: 50, minCredits: 100, creditsPer1k: { feed: 20, reel: 30, story: 15 }, adEvery: 5, adFormats: { feed: true, reel: true, story: false },
+  checkInTokens: 10, postBonus: 25, referralPerCheckin: 1, welcomeBonus: 100, creator: { per1kViews: 5, per1kLikes: 40, per100Comments: 20, maxPerPostPerDay: 500 },
+  exploreRate: 0.2, testAudience: 100, minEngagementRate: 0.04 };
 export interface VisitReq { id: string; from: string; date: string; people: number; note: string; status: "pending" | "accepted" | "declined" }
 export interface Place { slug: string; name: string; owner: string; status: "live" | "pending" | "rejected" }
 
@@ -30,7 +41,7 @@ export interface State {
   me: string; people: Person[]; posts: Post[]; stories: Story[]; highlights: Highlight[];
   balance: number; txns: Txn[]; passes: Pass[]; events: EventItem[]; blocked: string[];
   ads: Ad[]; requests: VisitReq[]; places: Place[];
-  adCredits?: number; adSettings?: AdSettings; adRevenue?: number;
+  adCredits?: number; adSettings?: AdSettings; platform?: Platform; adRevenue?: number;
   saved?: string[]; bounties?: Bounty[]; visits?: Visit[]; chats?: Chat[]; referral?: Referral;
   unread?: number; pv?: number; // pv bumps when the place catalogue reloads
 }
@@ -156,7 +167,10 @@ const msg = (from: string, m: Omit<ChatMsg, "id" | "from" | "at">): ChatMsg => (
 
 export const actions = {
   toggleSave: (id: string) => set((s) => { s.saved ??= []; const on = s.saved.includes(id); s.saved = on ? s.saved.filter((x) => x !== id) : [...s.saved, id]; const p = s.posts.find((x) => x.id === id); if (p) p.saves = Math.max(0, (p.saves ?? 0) + (on ? -1 : 1)); }),
-  view: (id: string) => set((s) => { const p = s.posts.find((x) => x.id === id); if (p) p.views = (p.views ?? 0) + 1; }),
+  adClick: (id: string) => set((s) => { const a = s.ads.find((x) => x.id === id); if (a) a.clicks = (a.clicks ?? 0) + 1; }),
+  adSeen: (id: string) => set((s) => { const a = s.ads.find((x) => x.id === id); if (a) a.reach += 1; }),
+  setPlatform: (p: Platform) => set((s) => { s.platform = p; s.adSettings = { pricePerCredit: p.pricePerCredit, minCredits: p.minCredits, creditsPer1kViews: p.creditsPer1k.feed }; }),
+  view: (id: string, _ms = 0) => set((s) => { const p = s.posts.find((x) => x.id === id); if (p) p.views = (p.views ?? 0) + 1; }),
   shared: (id: string) => set((s) => { const p = s.posts.find((x) => x.id === id); if (p) p.shares = (p.shares ?? 0) + 1; }),
   likeComment: (postId: string, cId: string) => set((s) => { const c = s.posts.find((p) => p.id === postId)?.comments.find((x) => x.id === cId); if (c) { c.likes ??= []; c.likes = c.likes.includes(s.me) ? c.likes.filter((x) => x !== s.me) : [...c.likes, s.me]; } }),
   sendMessage: (chatId: string, m: Omit<ChatMsg, "id" | "from" | "at">) => set((s) => { s.chats?.find((c) => c.id === chatId)?.messages.push(msg(s.me, m)); }),

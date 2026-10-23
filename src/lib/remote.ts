@@ -54,7 +54,8 @@ export async function loadUser(u: User) {
     addPeople(s, [profile.user, ...feed.items.flatMap((p: A) => [p.author, ...(p.tags ?? []), ...(p.comments ?? []).map((c: A) => c.author)]), ...stories.items.map((x: A) => x.author), ...blocked.items]);
     const following = new Set((profile.user.following ?? []).map(String));
     s.people.forEach((p) => { p.following = following.has(p.id); });
-    s.posts = feed.items.map(mapPost);
+    mergeAds(s, feed.items.filter((x: A) => x.sponsored));
+    s.posts = feed.items.filter((x: A) => !x.sponsored).map(mapPost);
     s.stories = stories.items.map((x: A) => ({ id: x.id, authorId: x.author?.id, src: x.src, at: ts(x.createdAt) }));
     s.highlights = profile.highlights.map((h: A) => ({ id: h.id, name: h.name, cover: h.cover, items: h.items }));
     s.balance = wallet.balance;
@@ -88,8 +89,12 @@ export async function loadAdmin() {
     s.places = places.items.map((p: A) => { placeIds.set(p.slug, p.id); return { slug: p.slug, name: p.name, owner: p.owner?.id ?? "", status: p.status }; });
     s.ads = ads.items.map((a: A) => ({ ...a, status: a.status === "rejected" ? "paused" : a.status, place: undefined }));
     s.adSettings = adSet.settings;
+    request<{ settings: A }>("GET", "/admin/settings").then((r) => set((x) => { x.platform = r.settings; })).catch(() => {});
   });
 }
+
+// Served ads arrive mixed into the feed; keep them with the store's ads so Home and Reels can place them.
+function mergeAds(s: A, ads: A[]) { for (const a of ads) if (!s.ads.some((x: A) => x.id === a.id)) s.ads.push({ ...a, place: a.place?.slug, status: "live" }); }
 
 let loadingMore = false, feedDone = false;
 export async function loadMoreFeed() {
@@ -97,9 +102,10 @@ export async function loadMoreFeed() {
   if (loadingMore || feedDone || !last) return;
   loadingMore = true;
   try {
-    const r = await get<A>(`/feed?limit=4&before=${new Date(last.at).toISOString()}`);
+    const r = await get<A>(`/feed?limit=4&seen=${getState().posts.slice(-300).map((p) => p.id).join(",")}`);
+    const ads = r.items.filter((x: A) => x.sponsored); r.items = r.items.filter((x: A) => !x.sponsored);
     if (!r.items.length) feedDone = true;
-    set((s) => { addPeople(s, r.items.flatMap((p: A) => [p.author, ...(p.tags ?? [])])); const ids = new Set(s.posts.map((p) => p.id)); s.posts.push(...r.items.map(mapPost).filter((p: A) => !ids.has(p.id))); });
+    set((s) => { mergeAds(s, ads); addPeople(s, r.items.flatMap((p: A) => [p.author, ...(p.tags ?? [])])); const ids = new Set(s.posts.map((p) => p.id)); s.posts.push(...r.items.map(mapPost).filter((p: A) => !ids.has(p.id))); });
   } finally { loadingMore = false; }
 }
 
@@ -141,7 +147,10 @@ if (LIVE) {
   Object.assign(actions, {
     addPost: (p: A) => run(() => post("/posts", { text: p.text, media: p.media, place: pid(p.place), tags: p.tags, party: p.party && { date: p.party.date, max: p.party.max } })),
     toggleLike: (id: string) => run(() => post(`/posts/${id}/like`, {})),
-    view: (id: string) => { post(`/posts/${id}/view`, {}).catch(() => {}); },
+    view: (id: string, ms = 0) => { post(`/posts/${id}/view`, { ms }).catch(() => {}); },
+    adClick: (id: string) => { post(`/ads/${id}/click`, {}).catch(() => {}); },
+    adSeen: (id: string) => { post(`/ads/${id}/impression`, {}).catch(() => {}); },
+    setPlatform: (p: A) => run(() => request("PUT", "/admin/settings", p)),
     shared: (id: string) => { post(`/posts/${id}/share`, {}).catch(() => {}); },
     comment: (id: string, text: string) => run(() => post(`/posts/${id}/comments`, { text })),
     repost: (id: string) => run(() => post(`/posts/${id}/repost`, {})),

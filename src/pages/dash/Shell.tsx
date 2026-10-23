@@ -58,7 +58,7 @@ export function Bars({ data }: { data: { label: string; value: number }[] }) {
   return (
     <div className="flex h-44 items-end gap-2" role="img" aria-label={data.map((d) => `${d.label}: ${d.value}`).join(", ")}>
       {data.map((d, i) => (
-        <div key={d.label} className="flex flex-1 flex-col items-center gap-1.5">
+        <div key={d.label} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
           <span className="text-[11px] font-semibold text-muted">{d.value}</span>
           <div className={`w-full rounded-t-lg ${i === data.length - 1 ? "bg-accent" : "bg-accent/30"}`} style={{ height: `${(d.value / max) * 100}%` }} />
           <span className="text-[11px] text-muted">{d.label}</span>
@@ -67,3 +67,45 @@ export function Bars({ data }: { data: { label: string; value: number }[] }) {
     </div>
   );
 }
+
+// Smooth area chart with a highlighted last point.
+export function Area({ data, h = 120 }: { data: number[]; h?: number }) {
+  const w = 300, max = Math.max(...data) * 1.1 || 1, step = w / (data.length - 1);
+  const pts = data.map((v, i) => [i * step, h - (v / max) * h] as const);
+  const line = pts.map(([x, y], i) => (i ? `L${x},${y}` : `M${x},${y}`)).join(" ");
+  const [lx, ly] = pts.at(-1)!;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-full w-full overflow-visible" role="img" aria-label={data.join(", ")}>
+      <defs><linearGradient id="ar" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="var(--color-accent)" stopOpacity=".35" /><stop offset="1" stopColor="var(--color-accent)" stopOpacity="0" /></linearGradient></defs>
+      <path d={`${line} L${w},${h} L0,${h} Z`} fill="url(#ar)" />
+      <path d={line} fill="none" stroke="var(--color-accent)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+      <circle cx={lx} cy={ly} r="4" fill="var(--color-accent)" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+// Donut with legend; first slice in accent, the rest in fading accent.
+export function Donut({ data, center }: { data: { label: string; value: number }[]; center?: string }) {
+  const total = data.reduce((a, d) => a + d.value, 0) || 1; let acc = 0;
+  const op = [1, 0.6, 0.35, 0.18, 0.1];
+  return (
+    <div className="flex items-center gap-5">
+      <svg viewBox="0 0 42 42" className="size-32 shrink-0 -rotate-90" role="img" aria-label={data.map((d) => `${d.label} ${d.value}`).join(", ")}>
+        <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--color-surface-2)" strokeWidth="6" />
+        {data.map((d, i) => { const len = (d.value / total) * 100; const el = <circle key={d.label} cx="21" cy="21" r="15.9" fill="none" stroke="var(--color-accent)" strokeOpacity={op[i] ?? 0.1} strokeWidth="6" strokeDasharray={`${len} ${100 - len}`} strokeDashoffset={-acc} />; acc += len; return el; })}
+        {center && <text x="21" y="21" transform="rotate(90 21 21)" textAnchor="middle" dominantBaseline="central" className="fill-current font-display text-[7px] font-extrabold">{center}</text>}
+      </svg>
+      <ul className="space-y-1.5 text-sm">{data.map((d, i) => <li key={d.label} className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-accent" style={{ opacity: op[i] ?? 0.1 }} /><span className="text-muted">{d.label}</span><b className="ml-auto pl-3">{Math.round((d.value / total) * 100)}%</b></li>)}</ul>
+    </div>
+  );
+}
+
+// Bento tile: a Card with a label row; spans set by className.
+export const Tile = ({ label, value, sub, children, className = "", hot = false }: { label: string; value?: string | number; sub?: string; children?: ReactNode; className?: string; hot?: boolean }) => (
+  <section className={`flex flex-col rounded-3xl p-5 ${hot ? "bg-accent text-accent-ink" : "border border-line bg-bg"} ${className}`}>
+    <p className={`text-sm font-semibold ${hot ? "opacity-80" : "text-muted"}`}>{label}</p>
+    {value !== undefined && <p className="mt-1 font-display text-3xl font-extrabold tracking-tight">{typeof value === "number" ? value.toLocaleString() : value}</p>}
+    {sub && <p className={`mt-0.5 text-xs font-semibold ${hot ? "opacity-80" : "text-accent-text"}`}>{sub}</p>}
+    {children && <div className="mt-4 min-h-0 flex-1">{children}</div>}
+  </section>
+);

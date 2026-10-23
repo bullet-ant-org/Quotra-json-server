@@ -20,8 +20,10 @@ export function PostCard({ post, onVisible, priority = false }: { post: Post; on
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = ref.current; if (!el) return;
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { onVisible?.(); if (!seen.has(post.id)) { seen.add(post.id); actions.view(post.id); } } }, { threshold: 0.4 });
-    io.observe(el); return () => io.disconnect();
+    let t0 = 0; // dwell: time on screen is sent with the first view, it drives ranking
+    const flush = () => { if (t0 && !seen.has(post.id)) { seen.add(post.id); actions.view(post.id, Date.now() - t0); } t0 = 0; };
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { onVisible?.(); t0 ||= Date.now(); } else flush(); }, { threshold: 0.4 });
+    io.observe(el); return () => { flush(); io.disconnect(); };
   }, [post.id, onVisible]);
   const nav = useNavigate();
   const s = useStore((x) => x);

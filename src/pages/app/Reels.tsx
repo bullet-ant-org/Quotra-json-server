@@ -1,8 +1,8 @@
 import { vsrc } from "../../lib/media";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bookmark, Heart, MapPin, MessageCircle, Send } from "lucide-react";
-import { actions, person, useStore , commentCount } from "../../lib/store";
+import { actions, person, useStore, commentCount, type Ad } from "../../lib/store";
 import { bySlug } from "../../fixtures/destinations";
 import { useTitle } from "../../lib/useTitle";
 
@@ -20,15 +20,18 @@ export default function Reels() {
     box.current?.querySelectorAll("section").forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, [reels.length]);
-  useEffect(() => { const p = reels[cur]?.post; if (p) actions.view(p.id); }, [cur]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Dwell time on each reel is sent when you swipe away; it feeds the ranking.
+  const t0 = useRef(Date.now());
+  useEffect(() => { const p = reels[cur]?.post; const start = Date.now(); t0.current = start; return () => { if (p) actions.view(p.id, Date.now() - start); }; }, [cur]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ads = s.ads.filter((a) => a.status === "live" && (a.format ?? "feed") === "reel" && a.img);
+  const every = s.platform?.adEvery ?? 5;
 
   return (
     <div ref={box} className="no-scrollbar h-[calc(100dvh-4rem)] snap-y snap-mandatory overflow-y-auto overscroll-contain bg-black">
       {reels.map(({ post, m, key }, i) => {
         const near = i >= cur - 1 && i <= cur + 4, now = i === cur;
         const a = person(s, post.authorId); const liked = post.likes.includes(s.me); const place = post.place ? bySlug(post.place) : undefined;
-        return (
-          <section key={key} data-i={i} className="relative mx-auto h-full max-w-md snap-start overflow-hidden">
+        return (<Fragment key={key}><section data-i={i} className="relative mx-auto h-full max-w-md snap-start overflow-hidden">
             {!near ? <div className="size-full animate-pulse bg-white/5" />
               : m.type === "video" ? <video src={vsrc(m.src)} autoPlay={now} loop muted playsInline preload={now ? "auto" : "metadata"} ref={(v) => { if (v) (now ? v.play().catch(() => {}) : v.pause()); }} className="size-full object-cover" />
               : <img src={m.src} alt="" loading={now ? "eager" : "lazy"} fetchPriority={now ? "high" : "low"} decoding="async" className={`size-full object-cover ${now ? "motion-safe:animate-[kenburns_14s_ease-in-out_infinite_alternate]" : ""}`} />}
@@ -46,8 +49,25 @@ export default function Reels() {
               <button onClick={async () => { try { await navigator.share?.({ text: post.text }); } catch { /* */ } }} className="flex flex-col items-center text-xs font-bold"><Send className="size-8" />Share</button>
             </div>
           </section>
-        );
+          {i % every === every - 1 && ads.length > 0 && <SponsoredReel ad={ads[Math.floor(i / every) % ads.length]} />}
+        </Fragment>);
       })}
     </div>
+  );
+}
+
+function SponsoredReel({ ad }: { ad: Ad }) {
+  useEffect(() => { actions.adSeen(ad.id); }, [ad.id]);
+  return (
+    <section className="relative mx-auto h-full max-w-md snap-start overflow-hidden">
+      <img src={ad.img} alt="" loading="lazy" className="size-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/85" />
+      <div className="absolute bottom-24 left-4 right-4 text-white lg:bottom-8">
+        <p className="text-xs font-bold uppercase tracking-wide opacity-80">Sponsored</p>
+        <p className="mt-1 font-display text-2xl font-extrabold">{ad.title}</p>
+        <p className="mt-1 line-clamp-2 text-sm">{ad.body}</p>
+        <Link to={ad.place ? `/destinations/${ad.place}` : "/explore"} onClick={() => actions.adClick(ad.id)} className="mt-4 block rounded-2xl bg-accent py-3 text-center font-bold text-accent-ink">{ad.cta ?? "Learn more"}</Link>
+      </div>
+    </section>
   );
 }

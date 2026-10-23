@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { Route, Routes } from "react-router-dom";
-import { CalendarDays, Flag, Sun, LayoutDashboard, MapPinned, Megaphone, Ticket, Users } from "lucide-react";
-import { actions, passSlots, useStore } from "../../lib/store";
+import { CalendarDays, Flag, SlidersHorizontal, Sun, LayoutDashboard, MapPinned, Megaphone, Ticket, Users } from "lucide-react";
+import { actions, passSlots, PLATFORM, useStore, type Placement, type Platform } from "../../lib/store";
 import { destinations, destPhoto, bySlug } from "../../fixtures/destinations";
-import { Badge, Bars, btn, btn2, Card, inputCls, Shell, Stat } from "./Shell";
+import { Area, Badge, Bars, btn, btn2, Card, Donut, inputCls, Shell, Stat, Tile } from "./Shell";
 import { useTitle } from "../../lib/useTitle";
 
 const nav = [
@@ -15,28 +15,90 @@ const nav = [
   { to: "/admin/places", label: "Places & brands", icon: MapPinned },
   { to: "/admin/ads", label: "Ads & credits", icon: Megaphone },
   { to: "/admin/reports", label: "Reports", icon: Flag },
+  { to: "/admin/platform", label: "Platform settings", icon: SlidersHorizontal },
 ];
 
 function Overview() {
   const s = useStore((x) => x);
   const claimed = s.passes.reduce((n, p) => n + p.claimed.length * p.perPerson, 0);
+  const live = s.ads.filter((a) => a.status === "live");
+  return (
+    <div className="grid auto-rows-[minmax(7.5rem,auto)] gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      <Tile hot label="Registered users" value={18420} sub="+640 this week" className="xl:col-span-2" />
+      <Tile label="Check-ins · 14 days" value={16_920} sub="+22% vs previous" className="sm:col-span-2 sm:row-span-2 xl:col-span-4">
+        <div className="h-40"><Area data={[820, 760, 910, 1040, 1480, 2210, 1930, 990, 870, 1120, 1260, 1690, 2480, 2140]} /></div>
+      </Tile>
+      <Tile label="Ad revenue" value={`₦${(s.adRevenue ?? 0).toLocaleString()}`} sub={`${live.length} live campaigns`} />
+      <Tile label="Tokens redeemed today" value={claimed} sub={`${s.passes.filter((p) => p.active).length} live passes`} />
+      <Tile label="Where people go" className="sm:col-span-2 xl:col-span-3 xl:row-span-2">
+        <Donut center="16.9k" data={[{ label: "Food & drinks", value: 41 }, { label: "Nightlife", value: 27 }, { label: "Beaches & parks", value: 18 }, { label: "Stays", value: 9 }, { label: "Other", value: 5 }]} />
+      </Tile>
+      <Tile label="Today's passes" className="sm:col-span-2 xl:col-span-3 xl:row-span-2">
+        <ul className="space-y-3">{s.passes.slice(0, 4).map((p) => { const sl = passSlots(p); return (
+          <li key={p.id}><div className="flex justify-between text-sm"><span className="truncate font-semibold">{bySlug(p.place)?.name ?? p.place} · {p.title}</span><span className="text-muted">{p.claimed.length}/{sl}</span></div>
+            <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-accent" style={{ width: `${(p.claimed.length / sl) * 100}%` }} /></div></li>
+        ); })}</ul>
+      </Tile>
+      <Tile label="Active brands" value={312} sub={`${s.places.filter((p) => p.status === "pending").length} waiting for review`} />
+      <Tile label="Event reservations" value={s.events.reduce((n, e) => n + e.reserved.length, 0)} sub={`${s.events.filter((e) => e.slots).length} sponsored`} />
+      <Tile label="Weekly check-ins by day" className="sm:col-span-2 xl:col-span-4"><Bars data={[["Mon", 820], ["Tue", 760], ["Wed", 910], ["Thu", 1040], ["Fri", 1480], ["Sat", 2210], ["Sun", 1930]].map(([label, value]) => ({ label: label as string, value: value as number }))} /></Tile>
+    </div>
+  );
+}
+
+// Every price, reward and ranking knob on the platform.
+function PlatformAdmin() {
+  const cur = useStore((x) => x.platform) ?? PLATFORM;
+  const [p, setP] = useState<Platform>(structuredClone(cur));
+  const [saved, setSaved] = useState(false);
+  const num = (label: string, v: number, on: (n: number) => void, hint?: string, step = 1) => (
+    <label className="block space-y-1 text-sm font-semibold">{label}<input type="number" min={0} step={step} value={v} onChange={(e) => on(+e.target.value)} className={inputCls} />{hint && <span className="block text-xs font-normal text-muted">{hint}</span>}</label>
+  );
+  const pl: Placement[] = ["feed", "reel", "story"];
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Registered users" value={18420} sub="+640 this week" />
-        <Stat label="Active brands" value={312} sub={`${s.places.filter((p) => p.status === "pending").length} waiting for review`} />
-        <Stat label="Tokens redeemed today" value={claimed} sub={`${s.passes.filter((p) => p.active).length} live passes`} />
-        <Stat label="Event reservations" value={s.events.reduce((n, e) => n + e.reserved.length, 0)} sub={`${s.events.filter((e) => e.slots).length} sponsored events`} />
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Card className="space-y-3">
+          <h2 className="font-display text-lg font-bold">Ads</h2>
+          <div className="grid grid-cols-2 gap-3">{num("₦ per ad credit", p.pricePerCredit, (n) => setP({ ...p, pricePerCredit: n }))}{num("Minimum purchase", p.minCredits, (n) => setP({ ...p, minCredits: n }), "credits")}</div>
+          <p className="pt-1 text-sm font-semibold">Credits per 1,000 views, by placement</p>
+          {pl.map((k) => (
+            <div key={k} className="flex items-center gap-3 rounded-2xl bg-surface p-3">
+              <label className="flex flex-1 items-center gap-2 font-semibold capitalize"><input type="checkbox" checked={p.adFormats[k]} onChange={(e) => setP({ ...p, adFormats: { ...p.adFormats, [k]: e.target.checked } })} className="size-4 accent-[var(--color-accent)]" />{k === "reel" ? "Reels" : k === "story" ? "Stories" : "Feed"}</label>
+              <input type="number" min={1} value={p.creditsPer1k[k]} onChange={(e) => setP({ ...p, creditsPer1k: { ...p.creditsPer1k, [k]: +e.target.value } })} className={`${inputCls} w-24`} aria-label={`${k} credits per 1k`} />
+              <span className="w-24 text-right text-xs text-muted">₦{(p.creditsPer1k[k] * p.pricePerCredit).toLocaleString()} CPM</span>
+            </div>
+          ))}
+          {num("Show one ad after every", p.adEvery, (n) => setP({ ...p, adEvery: Math.max(2, n) }), "organic posts or reels")}
+        </Card>
+        <Card className="space-y-3">
+          <h2 className="font-display text-lg font-bold">Creator rewards</h2>
+          <p className="text-sm text-muted">Paid hourly in tokens as posts cross milestones.</p>
+          <div className="grid grid-cols-2 gap-3">
+            {num("Per 1,000 views", p.creator.per1kViews, (n) => setP({ ...p, creator: { ...p.creator, per1kViews: n } }), "tokens")}
+            {num("Per 1,000 likes", p.creator.per1kLikes, (n) => setP({ ...p, creator: { ...p.creator, per1kLikes: n } }), "tokens")}
+            {num("Per 100 comments", p.creator.per100Comments, (n) => setP({ ...p, creator: { ...p.creator, per100Comments: n } }), "tokens")}
+            {num("Cap per post per day", p.creator.maxPerPostPerDay, (n) => setP({ ...p, creator: { ...p.creator, maxPerPostPerDay: n } }), "tokens")}
+          </div>
+          <h2 className="pt-2 font-display text-lg font-bold">Going-out rewards</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {num("Check-in (default)", p.checkInTokens, (n) => setP({ ...p, checkInTokens: n }), "places can override")}
+            {num("Post at a place bonus", p.postBonus, (n) => setP({ ...p, postBonus: n }), "within 24h of check-in")}
+            {num("Referral, per friend check-in", p.referralPerCheckin, (n) => setP({ ...p, referralPerCheckin: n }))}
+            {num("Welcome bonus", p.welcomeBonus, (n) => setP({ ...p, welcomeBonus: n }))}
+          </div>
+        </Card>
       </div>
-      <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
-        <Card><h2 className="font-display text-lg font-bold">Check-ins this week</h2><p className="mb-4 text-sm text-muted">Verified visits across all places</p>
-          <Bars data={[["Mon", 820], ["Tue", 760], ["Wed", 910], ["Thu", 1040], ["Fri", 1480], ["Sat", 2210], ["Sun", 1930]].map(([label, value]) => ({ label: label as string, value: value as number }))} /></Card>
-        <Card><h2 className="font-display text-lg font-bold">Today's passes</h2>
-          <ul className="mt-3 space-y-3">{s.passes.slice(0, 5).map((p) => { const sl = passSlots(p); return (
-            <li key={p.id}><div className="flex justify-between text-sm"><span className="font-semibold">{bySlug(p.place)?.name ?? p.place} · {p.title}</span><span className="text-muted">{p.claimed.length}/{sl}</span></div>
-              <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-accent" style={{ width: `${(p.claimed.length / sl) * 100}%` }} /></div></li>
-          ); })}</ul></Card>
-      </div>
+      <Card className="space-y-3">
+        <h2 className="font-display text-lg font-bold">Feed algorithm</h2>
+        <p className="text-sm text-muted">Posts rank by each person's interests (place types and hashtags they watch, like, comment, share and save) times engagement and freshness. New posts go to a test audience first; below the bar they are throttled, above it they keep spreading.</p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {num("Exploration share (%)", Math.round(p.exploreRate * 100), (n) => setP({ ...p, exploreRate: Math.min(50, n) / 100 }), "content outside someone's interests")}
+          {num("Test audience", p.testAudience, (n) => setP({ ...p, testAudience: n }), "impressions before judging a post")}
+          {num("Engagement bar (%)", +(p.minEngagementRate * 100).toFixed(1), (n) => setP({ ...p, minEngagementRate: n / 100 }), "weighted engagement per impression", 0.5)}
+        </div>
+      </Card>
+      <div className="sticky bottom-4 flex justify-end"><button onClick={() => { actions.setPlatform(p); setSaved(true); setTimeout(() => setSaved(false), 1500); }} className={`${btn} shadow-lg`}>{saved ? "Saved ✓" : "Save platform settings"}</button></div>
     </div>
   );
 }
@@ -234,7 +296,7 @@ export default function Admin() {
       <Routes>
         <Route index element={<Overview />} /><Route path="passes" element={<Passes />} /><Route path="events" element={<EventsAdmin />} />
         <Route path="bounties" element={<Bounties />} />
-        <Route path="users" element={<UsersAdmin />} /><Route path="places" element={<PlacesAdmin />} /><Route path="ads" element={<AdsAdmin />} /><Route path="reports" element={<Reports />} />
+        <Route path="users" element={<UsersAdmin />} /><Route path="places" element={<PlacesAdmin />} /><Route path="ads" element={<AdsAdmin />} /><Route path="reports" element={<Reports />} /><Route path="platform" element={<PlatformAdmin />} />
       </Routes>
     </Shell>
   );

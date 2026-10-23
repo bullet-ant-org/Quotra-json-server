@@ -64,22 +64,47 @@ function MenuDrawer({ onClose }: { onClose: () => void }) {
     ["Explore", [["/explore", "Explore places", Compass], ["/map", "Map", MapPinned], ["/rewards", "How tokens work", Coins]]],
     ["More", [["/for-business", "Outsider for business", Building2], ["/about", "About", Info], ["/login", "Log in", LogIn]]],
   ];
+  const quick: [string, string, typeof Home][] = [["/wallet?scan=1", "Scan", QrCode], ["/wallet", "Wallet", Coins], ["/referrals", "Invite", Gift], ["/saved", "Saved", Bookmark]];
+  const list = user ? groups.map(([g, items]) => [g, items.filter(([to]) => !quick.some(([q]) => q === to))] as const).filter(([, i]) => i.length) : groups;
   return createPortal(
-    <div className="fixed inset-0 z-[70] bg-black/40" onClick={onClose}>
-      <nav aria-label="Menu" onClick={(e) => e.stopPropagation()} className="absolute inset-y-0 right-0 flex w-[min(22rem,88vw)] flex-col overflow-y-auto bg-bg shadow-2xl">
-        <div className="flex items-center gap-3 border-b border-line p-4">
-          {user ? <><img src={me.avatar} alt="" className="size-12 rounded-full object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-bold">{me.name}</p><p className="text-sm text-accent-text">{balance} tokens</p></div></> : <span className="flex-1"><Logo /></span>}
-          <button onClick={onClose} className="grid size-10 place-items-center rounded-full bg-surface" aria-label="Close menu"><X className="size-5" /></button>
-        </div>
-        {groups.map(([g, items]) => (
-          <div key={g} className="px-3 pt-4">
-            <p className="px-3 pb-1 text-xs font-bold uppercase tracking-wide text-muted">{g}</p>
-            {items.map(([to, label, I]) => <Link key={to} to={to} onClick={onClose} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 font-semibold hover:bg-surface"><span className="grid size-9 place-items-center rounded-xl bg-accent-soft text-accent-text"><I className="size-5" /></span>{label}</Link>)}
+    <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-[2px]" onClick={onClose}>
+      <nav aria-label="Menu" onClick={(e) => e.stopPropagation()} className="absolute inset-y-0 right-0 flex w-[min(23rem,90vw)] flex-col overflow-y-auto bg-bg shadow-2xl">
+        {user ? (
+          <div className="relative shrink-0 overflow-hidden bg-accent px-5 pb-5 pt-4 text-accent-ink">
+            <svg aria-hidden="true" viewBox="0 0 200 200" className="pointer-events-none absolute -right-16 -top-16 size-56 opacity-20"><circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" strokeWidth="2" /><circle cx="100" cy="100" r="85" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 8" /></svg>
+            <div className="flex items-center justify-between">
+              <Link to="/profile" onClick={onClose} className="flex min-w-0 items-center gap-3"><img src={me.avatar} alt="" className="size-11 rounded-full object-cover ring-2 ring-white/70" /><span className="min-w-0"><b className="block truncate">{me.name}</b><span className="text-sm opacity-80">View profile</span></span></Link>
+              <button onClick={onClose} className="grid size-9 place-items-center rounded-full bg-black/15" aria-label="Close menu"><X className="size-5" /></button>
+            </div>
+            <p className="mt-6 text-xs font-bold uppercase tracking-[.18em] opacity-80">Balance</p>
+            <p className="font-display text-5xl font-extrabold leading-none tracking-tight">{balance.toLocaleString()}<span className="ml-2 text-base font-bold opacity-80">tokens</span></p>
           </div>
-        ))}
-        <div className="mt-auto space-y-1 border-t border-line p-3">
-          <button onClick={toggle} className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 font-semibold hover:bg-surface"><span className="grid size-9 place-items-center rounded-xl bg-surface">{theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}</span>{theme === "dark" ? "Light mode" : "Dark mode"}</button>
-          {user && <button onClick={async () => { onClose(); await logout(); }} className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 font-semibold text-red-600 hover:bg-surface"><span className="grid size-9 place-items-center rounded-xl bg-surface"><LogOut className="size-5" /></span>Log out</button>}
+        ) : (
+          <div className="flex items-center justify-between border-b border-line p-4"><Logo /><button onClick={onClose} className="grid size-9 place-items-center rounded-full bg-surface" aria-label="Close menu"><X className="size-5" /></button></div>
+        )}
+        {user && (
+          <div className="-mt-px grid shrink-0 grid-cols-4 border-b border-line">
+            {quick.map(([to, label, I]) => <Link key={to} to={to} onClick={onClose} className="flex flex-col items-center gap-1.5 border-r border-line py-4 text-xs font-bold last:border-r-0 hover:bg-surface"><I className="size-5 text-accent-text" />{label}</Link>)}
+          </div>
+        )}
+        <div className="flex-1 px-5 py-2">
+          {list.map(([g, items]) => (
+            <div key={g} className="py-3">
+              <p className="pb-1 text-[11px] font-bold uppercase tracking-[.18em] text-muted">{g}</p>
+              {items.map(([to, label, I]) => (
+                <Link key={to} to={to} onClick={onClose} className="group flex items-center gap-3 border-b border-line/70 py-3 text-[15px] font-semibold last:border-b-0">
+                  <I className="size-[18px] text-muted transition-colors group-hover:text-accent-text" />{label}
+                  <span aria-hidden="true" className="ml-auto text-muted transition-transform group-hover:translate-x-0.5">›</span>
+                </Link>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 border-t border-line p-4">
+          <div className="flex flex-1 rounded-full bg-surface p-1 text-sm font-bold" role="group" aria-label="Theme">
+            {(["light", "dark"] as const).map((t) => <button key={t} onClick={() => theme !== t && toggle()} aria-pressed={theme === t} className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 ${theme === t ? "bg-bg shadow-sm" : "text-muted"}`}>{t === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}{t === "dark" ? "Dark" : "Light"}</button>)}
+          </div>
+          {user && <button onClick={async () => { onClose(); await logout(); }} className="grid size-10 place-items-center rounded-full bg-surface text-red-600" aria-label="Log out" title="Log out"><LogOut className="size-5" /></button>}
         </div>
       </nav>
     </div>,
