@@ -132,7 +132,7 @@ export async function loadFor(u: User | null) {
   if (u.role === "admin") await loadAdmin(); else if (u.role === "brand") await loadBrand(u); else await loadUser(u);
   connectSocket();
 }
-const reload = () => (current ? loadFor(current) : Promise.resolve());
+export const reload = () => (current ? loadFor(current) : Promise.resolve());
 const err = (e: unknown) => (e as Error).message;
 // Run an API call, then refresh; for token actions return an error message or null.
 const run = (fn: () => Promise<unknown>) => { fn().then(reload).catch((e) => alert(err(e))); };

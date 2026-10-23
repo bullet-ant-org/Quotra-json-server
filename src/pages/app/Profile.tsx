@@ -19,8 +19,8 @@ function NewHighlight({ onClose, mine }: { onClose: () => void; mine: string[] }
   const [items, setItems] = useState<string[]>([]);
   const file = useRef<HTMLInputElement>(null);
   return createPortal(
-    <div className="fixed inset-0 z-[80] grid place-items-end bg-black/50 sm:place-items-center" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="New highlight" onClick={(e) => e.stopPropagation()} className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-[2rem] bg-bg p-6 sm:rounded-[2rem]">
+    <div className="vv-fill z-[80] grid place-items-end bg-black/50 sm:place-items-center" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label="New highlight" onClick={(e) => e.stopPropagation()} className="max-h-[min(90dvh,var(--vvh,100dvh))] w-full max-w-md overflow-y-auto rounded-t-[2rem] bg-bg p-6 sm:rounded-[2rem]">
         <div className="flex items-center justify-between"><h2 className="font-display text-2xl font-extrabold">New highlight</h2><button onClick={onClose} className="grid size-9 place-items-center rounded-full bg-surface" aria-label="Close"><X className="size-5" /></button></div>
         <label className="mt-4 block text-sm font-semibold">Name<input autoFocus value={name} onChange={(e) => setName(e.target.value)} maxLength={20} placeholder="e.g. Beach days" className="mt-1 w-full rounded-2xl bg-surface px-4 py-3 outline-none focus:ring-2 focus:ring-accent" /></label>
         <p className="mt-4 text-sm font-semibold">Pick photos</p>
@@ -138,7 +138,7 @@ function PostViewer({ postId, onClose }: { postId: string; onClose: () => void }
   useScrollLock();
   if (!post) return null;
   return createPortal(
-    <div className="fixed inset-0 z-[75] overflow-y-auto bg-bg" role="dialog" aria-modal="true" aria-label="Post">
+    <div className="vv-fill z-[75] overflow-y-auto bg-bg" role="dialog" aria-modal="true" aria-label="Post">
       <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-line bg-bg/90 px-3 py-2.5 backdrop-blur"><button onClick={onClose} aria-label="Back" className="grid size-10 place-items-center rounded-full hover:bg-surface"><ArrowLeft className="size-5" /></button><p className="font-bold">Post</p></div>
       <div className="mx-auto max-w-xl px-4 pb-16 sm:px-0"><PostCard post={post} priority /></div>
     </div>,

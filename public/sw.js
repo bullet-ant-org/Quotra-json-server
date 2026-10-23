@@ -1,6 +1,15 @@
 // Outsider service worker: serves the app shell and static files from cache, refreshing them in the background.
-const CACHE = "outsider-v2";
-self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/index.html"]))); self.skipWaiting(); });
+const CACHE = "outsider-v3";
+// Install: save the whole app (shell + every built JS/CSS file it references) so it opens instantly, even offline.
+self.addEventListener("install", (e) => {
+  e.waitUntil((async () => {
+    const c = await caches.open(CACHE);
+    const html = await (await fetch("/index.html", { cache: "no-store" })).text();
+    const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((m) => m[1]);
+    await c.addAll(["/", "/index.html", "/manifest.webmanifest", "/icon-192.png", "/favicon.svg", ...assets]);
+  })().catch(() => {}));
+  self.skipWaiting();
+});
 self.addEventListener("activate", (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k))))); self.clients.claim(); });
 self.addEventListener("fetch", (e) => {
   const req = e.request, url = new URL(req.url);

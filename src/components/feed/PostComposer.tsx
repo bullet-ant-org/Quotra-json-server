@@ -44,8 +44,8 @@ function Modal({ onClose, autoPick, initialPlace }: { onClose: () => void; autoP
   const chip = "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition-colors";
 
   return createPortal(
-    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 sm:items-center sm:p-4" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Create post" onClick={(e) => e.stopPropagation()} className="flex max-h-[94dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-[1.75rem] bg-bg shadow-2xl sm:rounded-[1.75rem]">
+    <div className="vv-fill z-[70] flex items-end justify-center bg-black/50 sm:items-center sm:p-4" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label="Create post" onClick={(e) => e.stopPropagation()} className="flex max-h-[min(94dvh,var(--vvh,100dvh))] w-full max-w-xl flex-col overflow-hidden rounded-t-[1.75rem] bg-bg shadow-2xl sm:rounded-[1.75rem]">
         <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
           <button onClick={onClose} className="grid size-9 place-items-center rounded-full hover:bg-surface" aria-label="Close"><X className="size-5" /></button>
           <h2 className="font-display text-lg font-bold">New post</h2>

@@ -29,7 +29,7 @@ function Viewer({ groups, start, onSeen, onClose }: { groups: Story[][]; start: 
   const tapLeft = useTap(prev, likeNow), tapRight = useTap(next, likeNow), tapMid = useTap(() => setPaused((p) => !p), likeNow);
   useEffect(() => { onSeen(st.id); if (paused || share) return; const t = setTimeout(next, 5000); return () => clearTimeout(t); }); // eslint-disable-line react-hooks/exhaustive-deps
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-label={`${a.name}'s story`} className="fixed inset-0 z-[80] grid place-items-center overflow-hidden bg-black" style={{ touchAction: "none" }} onWheel={(e) => e.stopPropagation()}>
+    <div role="dialog" aria-modal="true" aria-label={`${a.name}'s story`} className="vv-fill z-[80] grid place-items-center overflow-hidden bg-black" style={{ touchAction: "none" }} onWheel={(e) => e.stopPropagation()}>
       <img src={st.src} alt="" aria-hidden="true" className="absolute inset-0 size-full scale-125 object-cover opacity-60 blur-3xl" />
       <div className="relative h-full w-full max-w-md overflow-hidden sm:h-[92dvh] sm:rounded-3xl sm:shadow-2xl">
         <img key={st.id} src={st.src} alt="" className="size-full object-cover" />

@@ -161,7 +161,7 @@ export default function Messages() {
   const chats = (s.chats ?? []).filter((c) => (tab === "all" || c.group) && title(s, c).toLowerCase().includes(q.toLowerCase())).sort((a, b) => (b.messages.at(-1)?.at ?? 0) - (a.messages.at(-1)?.at ?? 0));
   const active = s.chats?.find((c) => c.id === id);
   return (
-    <div className="mx-auto grid h-[calc(100dvh-4rem)] max-w-6xl lg:grid-cols-[22rem_1fr] lg:border-x lg:border-line">
+    <div className="mx-auto grid h-[calc(var(--vvh,100dvh)-4rem)] max-w-6xl lg:grid-cols-[22rem_1fr] lg:border-x lg:border-line">
       <aside className={`${id ? "hidden" : "flex"} flex-col overflow-hidden pb-24 lg:flex lg:border-r lg:border-line lg:pb-0`}>
         <div className="space-y-3 p-4">
           <div className="flex items-center justify-between"><h1 className="text-2xl font-extrabold">Messages</h1><button onClick={() => setNewChat(true)} className="grid size-10 place-items-center rounded-full bg-accent text-accent-ink" aria-label="New message"><UserPlus className="size-5" /></button></div>
@@ -175,7 +175,7 @@ export default function Messages() {
           </Link></li>
         ); })}</ul>
       </aside>
-      <section className={`${id ? "block" : "hidden"} h-[calc(100dvh-4rem)] pb-[4.5rem] lg:block lg:pb-0`}>
+      <section className={`${id ? "block" : "hidden"} h-[calc(var(--vvh,100dvh)-4rem)] pb-[4.5rem] [.kb-open_&]:pb-0 lg:block lg:pb-0`}>
         {active ? <Thread chat={active} /> : <div className="grid h-full place-items-center p-8 text-center text-muted"><div><Send className="mx-auto size-10" /><p className="mt-2 font-semibold text-ink">Your messages</p><p>Plan your next outing with friends.</p><button onClick={() => setNewChat(true)} className="mt-3 rounded-full bg-accent px-5 py-2 font-bold text-accent-ink">Send message</button></div></div>}
       </section>
       {newChat && <NewChat onClose={() => setNewChat(false)} />}

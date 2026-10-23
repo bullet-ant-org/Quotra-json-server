@@ -250,7 +250,7 @@ export default function MapPage() {
   );
 
   return (
-    <div className="relative h-[calc(100dvh-4rem)] lg:grid lg:grid-cols-[25rem_1fr]">
+    <div data-no-ptr className="relative h-[calc(100dvh-4rem)] lg:grid lg:grid-cols-[25rem_1fr]">
       <aside className="hidden overflow-y-auto border-r border-line lg:block" aria-label="Places">{panel}</aside>
       <div className="relative h-full">
         {GKEY ? <GoogleMapView list={list.map((x) => x.d)} me={me} path={route?.path} cmd={cmd} onSelect={(slug) => { setSel(slug); setOpen(true); }} /> : <div ref={el} className="size-full" role="region" aria-label="Interactive map" />}

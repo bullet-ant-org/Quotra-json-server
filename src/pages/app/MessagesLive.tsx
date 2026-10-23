@@ -128,7 +128,7 @@ export default function Messages() {
   const base = location.pathname.startsWith("/brand") ? "/brand/inbox" : "/messages";
 
   return (
-    <div className="mx-auto grid h-[calc(100dvh-4rem)] max-w-6xl lg:grid-cols-[22rem_1fr] lg:border-x lg:border-line">
+    <div className="mx-auto grid h-[calc(var(--vvh,100dvh)-4rem)] max-w-6xl lg:grid-cols-[22rem_1fr] lg:border-x lg:border-line">
       <aside className={`${id ? "hidden" : "flex"} flex-col overflow-hidden border-line pb-24 lg:flex lg:border-r lg:pb-0`}>
         <div className="space-y-3 p-4">
           <h1 className="text-3xl font-extrabold">Messages</h1>
@@ -149,7 +149,7 @@ export default function Messages() {
           {!list.length && <li className="p-6 text-center text-sm text-muted">No conversations yet. Message someone from their profile or a place's page.</li>}
         </ul>
       </aside>
-      <section className={`${id ? "block" : "hidden"} h-[calc(100dvh-4rem)] pb-24 lg:block lg:pb-0`}>
+      <section className={`${id ? "block" : "hidden"} h-[calc(var(--vvh,100dvh)-4rem)] pb-24 [.kb-open_&]:pb-0 lg:block lg:pb-0`}>
         {id ? <Thread id={id} convo={all.find((c) => c.id === id)} /> : (
           <div className="grid h-full place-items-center p-8 text-center text-muted"><div><MessageCircle className="mx-auto size-10" aria-hidden="true" /><p className="mt-2 font-semibold text-ink">Pick a conversation</p></div></div>
         )}

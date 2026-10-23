@@ -1,3 +1,4 @@
+import { PullToRefresh } from "../../components/PullToRefresh";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { LogOut, Menu, Moon, Sun, X, type LucideIcon } from "lucide-react";
@@ -36,7 +37,7 @@ export function Shell({ title, nav, children }: { title: string; nav: NavItem[];
           <h1 className="font-display text-xl font-bold">{nav.find((n) => (n.end ? pathname === n.to : pathname.startsWith(n.to)))?.label}</h1>
           <button onClick={toggle} className="ml-auto grid size-10 place-items-center rounded-full hover:bg-surface" aria-label="Toggle theme">{theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}</button>
         </header>
-        <main className="p-4 sm:p-6">{children}</main>
+        <main className="p-4 sm:p-6"><PullToRefresh>{children}</PullToRefresh></main>
       </div>
     </div>
   );

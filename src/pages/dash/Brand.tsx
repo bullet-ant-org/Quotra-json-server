@@ -314,7 +314,7 @@ export default function Brand() {
         <Route path="places" element={<Places />} />
         <Route path="ads" element={<Ads />} />
         <Route path="requests" element={<Card><Requests /></Card>} />
-        <Route path="inbox" element={<div className="-m-4 overflow-hidden sm:-m-6 [&>div]:h-[calc(100dvh-4rem)]"><Messages /></div>} />
+        <Route path="inbox" element={<div className="-m-4 overflow-hidden sm:-m-6 [&>div]:h-[calc(var(--vvh,100dvh)-4rem)]"><Messages /></div>} />
         <Route path="inbox/:id" element={<div className="-m-4 overflow-hidden sm:-m-6"><Messages /></div>} />
         <Route path="events" element={<BrandEvents />} />
         <Route path="billing" element={<Billing />} />

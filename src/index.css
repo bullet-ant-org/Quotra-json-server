@@ -84,7 +84,11 @@ body {
 @media (pointer: coarse) { input, textarea, select { font-size: 16px !important; } }
 /* App-like touch: no long-press callouts or text selection on controls and media. */
 button, a, nav, img, video, [role="tab"] { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-button, a { touch-action: manipulation; } /* removes the 300ms tap delay */
+button, a { touch-action: manipulation; }
+/* Fills exactly the visible screen (above the keyboard when it's open). */
+.vv-fill { position: fixed; left: 0; right: 0; top: var(--vvt, 0px); height: var(--vvh, 100dvh); }
+/* Hide the bottom dock while typing so the field sits right on the keyboard. */
+.kb-open nav[aria-label="Primary"] { display: none; } /* removes the 300ms tap delay */
 h1, h2, h3, .font-display {
   font-family: var(--font-display);
   letter-spacing: -0.02em;

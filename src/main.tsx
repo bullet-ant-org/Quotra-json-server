@@ -9,6 +9,8 @@ import { LIVE } from "./lib/store";
 
 if (LIVE) loadPlaces().catch(() => {});
 
+import { trackViewport } from "./lib/viewport";
+trackViewport();
 if (import.meta.env.PROD && "serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
 
 createRoot(document.getElementById("root")!).render(

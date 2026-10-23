@@ -28,7 +28,7 @@ export function Lightbox({ media, start, onClose, postId }: { media: Media[]; st
   const icon = "grid size-10 place-items-center";
 
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-label="Post" className="fixed inset-0 z-[80] flex bg-black text-white" style={{ touchAction: "none" }}>
+    <div role="dialog" aria-modal="true" aria-label="Post" className="vv-fill z-[80] flex bg-black text-white" style={{ touchAction: "none" }}>
       <div className="relative flex min-w-0 flex-1 flex-col" onTouchStart={(e) => (x0 = e.touches[0].clientX)} onTouchEnd={(e) => { const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); }}>
         {m.type === "image" && <img src={m.src} alt="" aria-hidden="true" className="absolute inset-0 size-full scale-110 object-cover opacity-50 blur-2xl" />}
         <header className="relative z-10 flex items-center gap-3 bg-gradient-to-b from-black/60 to-transparent p-3">
