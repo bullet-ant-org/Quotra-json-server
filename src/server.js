@@ -46,4 +46,6 @@ await mongoose.connect(env.mongo);
 await mongoose.syncIndexes();
 const server = http.createServer(app);
 attach(server);
+import { payCreators } from "./lib/creator.js";
+setInterval(() => payCreators().catch((e) => console.error("creator rewards", e)), 60 * 60e3).unref();
 server.listen(env.port, () => console.log(`Outsider API on :${env.port}`));

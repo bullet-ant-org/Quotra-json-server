@@ -4,30 +4,44 @@ import { Highlight, Post, Report, Story, User, oid } from "../models/index.js";
 import { bad, forbidden, h, notFound, page } from "../lib/http.js";
 import { requireAuth } from "../lib/auth.js";
 import { notify } from "../lib/notify.js";
+import { Ad } from "../models/index.js";
+import { learn, rankFeed } from "../lib/algorithm.js";
+import { getSettings } from "../lib/settings.js";
+import { Place } from "../models/index.js";
 
 const r = Router();
+// Public: prices and rewards the app displays.
+r.get("/settings", h(async (_req, res) => { const { creator, pricePerCredit, minCredits, creditsPer1k, checkInTokens, postBonus, referralPerCheckin, welcomeBonus, adEvery } = await getSettings(); res.json({ settings: { creator, pricePerCredit, minCredits, creditsPer1k, checkInTokens, postBonus, referralPerCheckin, welcomeBonus, adEvery } }); }));
 r.use(requireAuth);
 const pub = "firstName lastName username avatar role";
 const mediaZ = z.array(z.object({ type: z.enum(["image", "video"]), src: z.string().url().max(2048) })).max(20).default([]);
 // Lists never ship comments; they are paged separately when someone opens them.
 const populate = (q) => q.select("-comments").populate("author", pub).populate("tags", pub).populate("place", "slug name city");
 
-// Feed: people you follow + you, newest first, blocked authors removed.
+// Re-fetch ranked ids as full documents (keeps toJSON/id) in ranked order.
+const pop = async (ranked) => { const m = new Map((await populate(Post.find({ _id: { $in: ranked.map((p) => p._id) } }))).map((d) => [d.id, d])); return ranked.map((p) => m.get(String(p._id))).filter(Boolean); };
+const seenIds = (q) => String(q.seen ?? "").split(",").filter((x) => /^[a-f\d]{24}$/i.test(x)).slice(0, 500);
+
+// Live ads of a format, interleaved every `adEvery` items. Each served ad is one impression.
+async function withAds(items, format, me) {
+  const set = await getSettings();
+  if (!set.adFormats?.[format] && set.adFormats) return items;
+  const ads = await Ad.find({ status: "live", format, $expr: { $lt: ["$spent", "$credits"] } }).sort({ spent: 1 }).limit(Math.ceil(items.length / set.adEvery)).populate("brand", pub).populate("place", "slug name city").lean();
+  const out = []; let a = 0;
+  items.forEach((p, i) => { out.push(p); if ((i + 1) % set.adEvery === 0 && ads[a]) { const { _id, ...ad } = ads[a++]; out.push({ sponsored: true, id: String(_id), ...ad }); }; });
+  return out;
+}
+
+// Feed: ranked by interests + engagement with ~20% exploration. Client passes ids already seen.
 r.get("/feed", h(async (req, res) => {
-  const { limit, before } = page(req.query);
-  const me = req.user;
-  const f = { removed: false, author: { $in: [...me.following, me._id], $nin: me.blocked } };
-  if (before) f.createdAt = { $lt: before };
-  let items = await populate(Post.find(f).sort({ createdAt: -1 }).limit(limit));
-  if (items.length < limit && !before) {
-    const extra = await populate(Post.find({ removed: false, author: { $nin: [...me.blocked, me._id, ...me.following] } }).sort({ createdAt: -1 }).limit(limit - items.length));
-    items = [...items, ...extra];
-  }
-  res.json({ items, next: items.at(-1)?.createdAt ?? null });
+  const { limit } = page(req.query);
+  const items = await pop(await rankFeed(req.user, { limit, seen: seenIds(req.query) }));
+  res.json({ items: await withAds(items, "feed", req.user), next: items.length ? "more" : null });
 }));
 
 r.get("/reels", h(async (req, res) => {
-  res.json({ items: await populate(Post.find({ removed: false, "media.0": { $exists: true }, author: { $nin: req.user.blocked } }).sort({ createdAt: -1 }).limit(30)) });
+  const items = await pop(await rankFeed(req.user, { limit: 12, seen: seenIds(req.query), reels: true }));
+  res.json({ items: await withAds(items, "reel", req.user) });
 }));
 
 r.post("/posts", h(async (req, res) => {
@@ -35,7 +49,8 @@ r.post("/posts", h(async (req, res) => {
     party: z.object({ date: z.coerce.date(), max: z.number().int().min(1).max(200) }).optional() }).parse(req.body);
   if (!d.text.trim() && !d.media.length) throw bad("Add some text or a photo.");
   if (d.party && !d.place) throw bad("Tag a place to start a going party.");
-  const p = await Post.create({ ...d, author: req.user._id, hashtags: [...new Set((d.text.match(/#\w+/g) ?? []).map((x) => x.slice(1).toLowerCase()))], party: d.party && { ...d.party, going: [] } });
+  const placeCategory = d.place ? (await Place.findById(d.place).select("category").lean())?.category : undefined;
+  const p = await Post.create({ ...d, placeCategory, author: req.user._id, hashtags: [...new Set((d.text.match(/#\w+/g) ?? []).map((x) => x.slice(1).toLowerCase()))], party: d.party && { ...d.party, going: [] } });
   d.tags.forEach((t) => notify(t, "social", `@${req.user.username} tagged you in a post`, `/home#${p.id}`));
   res.status(201).json({ post: await populate(Post.findById(p._id)) });
 }));
@@ -53,6 +68,7 @@ r.post("/posts/:id/like", h(async (req, res) => {
   if (!p) throw notFound();
   const on = !p.likes.some((x) => x.equals(req.user._id));
   await Post.updateOne({ _id: p._id }, on ? { $addToSet: { likes: req.user._id } } : { $pull: { likes: req.user._id } });
+  if (on) learn(req.user._id, p, "like").catch(() => {});
   if (on && !p.author.equals(req.user._id)) notify(p.author, "social", `@${req.user.username} liked your post`, `/home#${p.id}`);
   res.json({ liked: on, likes: p.likes.length + (on ? 1 : -1) });
 }));
@@ -61,14 +77,37 @@ r.post("/posts/:id/comments", h(async (req, res) => {
   const { text } = z.object({ text: z.string().trim().min(1).max(2000) }).parse(req.body);
   const p = await Post.findByIdAndUpdate(req.params.id, { $push: { comments: { author: req.user._id, text } }, $inc: { commentCount: 1 } }, { returnDocument: "after" });
   if (!p) throw notFound();
+  learn(req.user._id, p, "comment").catch(() => {});
   if (!p.author.equals(req.user._id)) notify(p.author, "social", `@${req.user.username} commented: ${text.slice(0, 60)}`, `/home#${p.id}`);
   const c = p.comments.at(-1);
   res.status(201).json({ comment: { id: c._id, text: c.text, at: c.at, author: { id: req.user.id, firstName: req.user.firstName, lastName: req.user.lastName, username: req.user.username, avatar: req.user.avatar } } });
 }));
 
 // Lightweight counters; the client sends one view per post per session.
-r.post("/posts/:id/view", h(async (req, res) => { await Post.updateOne({ _id: req.params.id }, { $inc: { views: 1 } }); res.json({ ok: true }); }));
-r.post("/posts/:id/share", h(async (req, res) => { await Post.updateOne({ _id: req.params.id }, { $inc: { shares: 1 } }); res.json({ ok: true }); }));
+r.post("/posts/:id/view", h(async (req, res) => {
+  const ms = Math.min(120000, Math.max(0, Number(req.body?.ms) || 0));
+  const p = await Post.findByIdAndUpdate(req.params.id, { $inc: { views: 1, "stats.impressions": 1, "stats.dwellMs": ms } }).select("hashtags placeCategory").lean();
+  if (p && ms > 2000) learn(req.user._id, p, "dwell", ms / 10000).catch(() => {});
+  res.json({ ok: true });
+}));
+r.post("/posts/:id/save", h(async (req, res) => {
+  const on = req.body?.on !== false;
+  const p = await Post.findByIdAndUpdate(req.params.id, { $inc: { saves: on ? 1 : -1 } }).select("hashtags placeCategory").lean();
+  if (p && on) learn(req.user._id, p, "save").catch(() => {});
+  res.json({ ok: true });
+}));
+r.post("/ads/:id/click", h(async (req, res) => { await Ad.updateOne({ _id: req.params.id }, { $inc: { clicks: 1 } }); res.json({ ok: true }); }));
+// Ad impressions: credits are spent per 1k impressions at the format's rate.
+r.post("/ads/:id/impression", h(async (req, res) => {
+  const a = await Ad.findById(req.params.id).select("format credits spent status").lean();
+  if (a && a.status === "live") {
+    const rate = (await getSettings()).creditsPer1k[a.format] ?? 20;
+    const spent = Math.min(a.credits, (a.spent ?? 0) + rate / 1000);
+    await Ad.updateOne({ _id: a._id }, { $inc: { reach: 1 }, $set: { spent, ...(spent >= a.credits ? { status: "paused" } : {}) } });
+  }
+  res.json({ ok: true });
+}));
+r.post("/posts/:id/share", h(async (req, res) => { await Post.updateOne({ _id: req.params.id }, { $inc: { shares: 1 } }); Post.findById(req.params.id).select("hashtags placeCategory").lean().then((p) => p && learn(req.user._id, p, "share")).catch(() => {}); res.json({ ok: true }); }));
 
 // Newest first, 10 at a time: GET /posts/:id/comments?skip=0&limit=10
 r.get("/posts/:id/comments", h(async (req, res) => {
@@ -83,6 +122,7 @@ r.get("/posts/:id/comments", h(async (req, res) => {
 
 r.post("/posts/:id/repost", h(async (req, res) => {
   const o = await Post.findByIdAndUpdate(req.params.id, { $inc: { reposts: 1 } });
+  if (o) learn(req.user._id, o, "repost").catch(() => {});
   if (!o) throw notFound();
   const p = await Post.create({ author: req.user._id, text: o.text, media: o.media, place: o.place, repostOf: o._id });
   res.status(201).json({ post: await populate(Post.findById(p._id)) });

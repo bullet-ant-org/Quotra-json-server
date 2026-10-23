@@ -1,3 +1,4 @@
+import { getSettings } from "../lib/settings.js";
 import { Router } from "express";
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
@@ -34,7 +35,7 @@ async function checkOtp(addr, purpose, code) {
 async function createUser(data) {
   return tx(async (s) => {
     const [u] = await User.create([{ ...data, emailVerified: true }], { session: s });
-    await moveTokens(s, u._id, WELCOME, "bonus", "Welcome bonus", `welcome:${u._id}`);
+    await moveTokens(s, u._id, (await getSettings()).welcomeBonus, "bonus", "Welcome bonus", `welcome:${u._id}`);
     return u;
   }).then((u) => { sendMail(u.email, "Welcome to Outsider", welcomeEmail(u.firstName)).catch(() => {}); return u; });
 }

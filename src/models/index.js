@@ -13,7 +13,8 @@ export const User = model("User", new Schema({
   lastName: { type: String, default: "", trim: true },
   username: { type: String, required: true, unique: true, lowercase: true, trim: true, match: /^[a-z0-9._]{3,20}$/ },
   avatar: String, cover: String, bio: { type: String, maxlength: 300 }, city: String,
-  interests: [String],
+  interests: { type: Map, of: Number, default: {} }, // learned topic affinity used by the feed algorithm
+  referredBy: id("User"), referralCode: { type: String, unique: true, sparse: true },
   balance: { type: Number, default: 0, min: 0 },
   adCredits: { type: Number, default: 0, min: 0 }, // brands only; bought with Paystack, separate from plans // token wallet; only changed through ledger helpers
   following: [id("User")], blocked: [id("User")],
@@ -43,7 +44,8 @@ export const Place = model("Place", new Schema({
 const media = new Schema({ type: { type: String, enum: ["image", "video"] }, src: String }, { _id: false });
 export const Post = model("Post", new Schema({
   author: id("User"), text: { type: String, maxlength: 5000 }, media: [media],
-  place: id("Place"), tags: [id("User")], hashtags: { type: [String], index: true },
+  place: id("Place"), placeCategory: String, tags: [id("User")], hashtags: { type: [String], index: true },
+  stats: { impressions: { type: Number, default: 0 }, dwellMs: { type: Number, default: 0 } }, rewarded: { views: { type: Number, default: 0 }, likes: { type: Number, default: 0 }, comments: { type: Number, default: 0 } },
   likes: [id("User")], reposts: { type: Number, default: 0 }, views: { type: Number, default: 0 }, commentCount: { type: Number, default: 0 }, shares: { type: Number, default: 0 }, saves: { type: Number, default: 0 }, repostOf: id("Post"),
   comments: [{ author: id("User"), text: String, at: { type: Date, default: Date.now } }],
   party: { date: Date, max: Number, going: [id("User")] },
@@ -69,7 +71,7 @@ export const Txn = model("Txn", new Schema({
 }, opts));
 
 export const CheckIn = model("CheckIn", new Schema({ user: id("User"), place: id("Place"), distanceM: Number, accuracyM: Number, status: String }, opts).index({ user: 1, place: 1, createdAt: -1 }));
-export const Ad = model("Ad", new Schema({ brand: id("User"), title: String, body: String, img: String, budget: Number, reach: { type: Number, default: 0 }, clicks: { type: Number, default: 0 }, credits: Number, spent: { type: Number, default: 0 }, objective: String, days: Number, city: String, interests: [String], ages: [Number], cta: String, place: id("Place"), status: { type: String, enum: ["review", "live", "paused", "rejected"], default: "review" } }, opts));
+export const Ad = model("Ad", new Schema({ format: { type: String, enum: ["feed", "reel", "story"], default: "feed" }, brand: id("User"), title: String, body: String, img: String, budget: Number, reach: { type: Number, default: 0 }, clicks: { type: Number, default: 0 }, credits: Number, spent: { type: Number, default: 0 }, objective: String, days: Number, city: String, interests: [String], ages: [Number], cta: String, place: id("Place"), status: { type: String, enum: ["review", "live", "paused", "rejected"], default: "review" } }, opts));
 export const VisitRequest = model("VisitRequest", new Schema({ from: id("User"), place: id("Place"), brand: id("User"), date: Date, people: Number, note: String, status: { type: String, enum: ["pending", "accepted", "declined"], default: "pending" } }, opts));
 export const Conversation = model("Conversation", new Schema({ members: [{ ...id("User"), index: true }], name: String, lastText: String, lastAt: Date }, opts));
 export const Message = model("Message", new Schema({ conversation: { ...id("Conversation"), index: true }, from: id("User"), text: String, media: [media], readBy: [id("User")] }, opts));
@@ -88,6 +90,6 @@ export const Subscription = model("Subscription", new Schema({
 
 export const Setting = model("Setting", new Schema({ key: { type: String, unique: true }, value: Object }, opts));
 export const CreditPurchase = model("CreditPurchase", new Schema({ brand: id("User"), credits: Number, amount: Number, reference: { type: String, unique: true }, status: { type: String, default: "pending" } }, opts));
-export const getAdSettings = async () => ({ pricePerCredit: 50, creditsPer1kViews: 20, minCredits: 100, ...((await Setting.findOne({ key: "ads" }))?.value ?? {}) });
+export const getAdSettings = async () => { const s = await (await import("../lib/settings.js")).getSettings(); return { pricePerCredit: s.pricePerCredit, minCredits: s.minCredits, creditsPer1k: s.creditsPer1k, creditsPer1kViews: s.creditsPer1k.feed }; };
 
 export const oid = (s) => new Types.ObjectId(s);

@@ -1,3 +1,4 @@
+import { getSettings, saveSettings } from "../lib/settings.js";
 import { Router } from "express";
 import { z } from "zod";
 import { Setting, getAdSettings, Ad, CheckIn, Event, Pass, Place, Post, Report, Subscription, Txn, User } from "../models/index.js";
@@ -80,10 +81,13 @@ r.patch("/places/:id", h(async (req, res) => {
 
 r.get("/ad-settings", h(async (_req, res) => res.json({ settings: await getAdSettings() })));
 r.put("/ad-settings", h(async (req, res) => {
-  const value = z.object({ pricePerCredit: z.number().min(1), creditsPer1kViews: z.number().min(1), minCredits: z.number().int().min(1) }).parse(req.body);
-  await Setting.updateOne({ key: "ads" }, { value }, { upsert: true });
-  res.json({ settings: value });
+  const v = z.object({ pricePerCredit: z.number().min(1), creditsPer1kViews: z.number().min(1).optional(), minCredits: z.number().int().min(1) }).parse(req.body);
+  await saveSettings({ pricePerCredit: v.pricePerCredit, minCredits: v.minCredits, ...(v.creditsPer1kViews ? { creditsPer1k: { feed: v.creditsPer1kViews } } : {}) });
+  res.json({ settings: await getAdSettings() });
 }));
+
+r.get("/settings", h(async (_req, res) => res.json({ settings: await getSettings() })));
+r.put("/settings", h(async (req, res) => res.json({ settings: await saveSettings(z.record(z.string(), z.any()).parse(req.body)) })));
 
 r.get("/ads", h(async (_req, res) => res.json({ items: await Ad.find().sort({ createdAt: -1 }).limit(200).populate("brand", "username") })));
 r.patch("/ads/:id", h(async (req, res) => {
