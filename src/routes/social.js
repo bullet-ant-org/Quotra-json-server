@@ -4,6 +4,8 @@ import { Highlight, Post, Report, Story, User, oid } from "../models/index.js";
 import { bad, forbidden, h, notFound, page } from "../lib/http.js";
 import { requireAuth } from "../lib/auth.js";
 import { notify } from "../lib/notify.js";
+import { push, vapidPublicKey } from "../lib/push.js";
+import { PushSub } from "../models/index.js";
 import { Ad } from "../models/index.js";
 import { learn, rankFeed } from "../lib/algorithm.js";
 import { getSettings } from "../lib/settings.js";
@@ -12,9 +14,30 @@ import { moveTokens, tx } from "../lib/ledger.js";
 
 const r = Router();
 // Public: prices and rewards the app displays.
+// Push: the browser registers its subscription here.
+r.get("/push/key", (_req, res) => res.json({ key: vapidPublicKey }));
 r.get("/settings", h(async (_req, res) => { const { creator, pricePerCredit, minCredits, creditsPer1k, checkInTokens, postBonus, referralPerCheckin, welcomeBonus, adEvery } = await getSettings(); res.json({ settings: { creator, pricePerCredit, minCredits, creditsPer1k, checkInTokens, postBonus, referralPerCheckin, welcomeBonus, adEvery } }); }));
 r.use(requireAuth);
-const pub = "firstName lastName username avatar role";
+r.post("/push/subscribe", h(async (req, res) => {
+  const d = z.object({ endpoint: z.string().url().max(1000), keys: z.object({ p256dh: z.string().max(200), auth: z.string().max(100) }) }).parse(req.body);
+  await PushSub.updateOne({ endpoint: d.endpoint }, { user: req.user._id, keys: d.keys }, { upsert: true });
+  res.json({ ok: true });
+}));
+r.post("/push/unsubscribe", h(async (req, res) => { await PushSub.deleteOne({ endpoint: String(req.body?.endpoint ?? ""), user: req.user._id }); res.json({ ok: true }); }));
+
+// New post → push to followers, plus a small random sample of people who engaged with this author before.
+async function fanOutPost(author, post) {
+  const img = post.media.find((m) => m.type === "image")?.src;
+  const payload = { title: `${author.firstName} posted${post.place ? " from a spot" : ""}`, body: post.text?.slice(0, 120) || "New photo", image: img, icon: author.avatar, url: `/home#${post.id}`, tag: `post-${author.id}` };
+  const followers = await User.find({ following: author._id, blocked: { $ne: author._id } }).select("_id").limit(5000).lean();
+  const recent = await Post.find({ author: author._id, createdAt: { $gt: new Date(Date.now() - 30 * 864e5) } }).select("likes").limit(30).lean();
+  const fset = new Set(followers.map((f) => String(f._id)));
+  const fans = [...new Set(recent.flatMap((p) => p.likes.map(String)))].filter((id) => !fset.has(id) && id !== String(author._id));
+  const sample = fans.sort(() => Math.random() - 0.5).slice(0, Math.ceil(fans.length * 0.15));
+  await push(followers.map((f) => f._id), payload);
+  if (sample.length) await push(sample, { ...payload, title: `${author.firstName} just posted something new` });
+}
+const pub = "firstName lastName username avatar cover role";
 const mediaZ = z.array(z.object({ type: z.enum(["image", "video"]), src: z.string().url().max(2048) })).max(20).default([]);
 // Lists never ship comments; they are paged separately when someone opens them.
 const populate = (q) => q.select("-comments").populate("author", pub).populate("tags", pub).populate("place", "slug name city");
@@ -58,6 +81,7 @@ r.post("/posts", h(async (req, res) => {
     const bonus = (await getSettings()).postBonus;
     if (ci && bonus > 0) await tx((s) => moveTokens(s, req.user._id, bonus, "bonus", "Posted after check-in", `postbonus:${ci._id}`)).catch(() => {});
   }
+  fanOutPost(req.user, p).catch(() => {});
   d.tags.forEach((t) => notify(t, "social", `@${req.user.username} tagged you in a post`, `/home#${p.id}`));
   res.status(201).json({ post: await populate(Post.findById(p._id)) });
 }));
@@ -184,9 +208,10 @@ r.post("/users/:id/block", h(async (req, res) => {
 r.get("/me/blocked", h(async (req, res) => res.json({ items: await User.find({ _id: { $in: req.user.blocked } }).select(pub) })));
 
 r.patch("/me", h(async (req, res) => {
-  const d = z.object({ firstName: z.string().trim().min(1).max(40), lastName: z.string().trim().max(40), bio: z.string().max(300), city: z.string().max(60), avatar: z.string().url(), cover: z.string().url(), interests: z.array(z.string()).max(20),
+  const d = z.object({ firstName: z.string().trim().min(1).max(40), lastName: z.string().trim().max(40), bio: z.string().max(300), city: z.string().max(60), avatar: z.string().url(), cover: z.string().url(), interests: z.array(z.string().max(40)).max(20),
     settings: z.object({ publicProfile: z.boolean(), showCheckins: z.boolean(), openMessages: z.boolean() }).partial() }).partial().parse(req.body);
-  const set = { ...d }; delete set.settings;
+  const set = { ...d }; delete set.settings; delete set.interests;
+  for (const t of d.interests ?? []) set[`interests.${t.toLowerCase().replace(/[.$]/g, "_")}`] = 5; // picked topics seed the feed algorithm
   for (const [k, v] of Object.entries(d.settings ?? {})) set[`settings.${k}`] = v;
   res.json({ user: await User.findByIdAndUpdate(req.user._id, { $set: set }, { returnDocument: "after" }) });
 }));

@@ -77,6 +77,7 @@ export const Conversation = model("Conversation", new Schema({ members: [{ ...id
 export const Message = model("Message", new Schema({ conversation: { ...id("Conversation"), index: true }, from: id("User"),
   kind: { type: String, enum: ["text", "image", "video", "audio", "location", "poll", "post"], default: "text" }, text: String, src: String, media: [media],
   place: String, post: id("Post"), poll: { question: String, options: [{ _id: false, label: String, place: String, votes: [id("User")] }] }, readBy: [id("User")] }, opts));
+export const PushSub = model("PushSub", new Schema({ user: { ...id("User"), index: true }, endpoint: { type: String, unique: true }, keys: { p256dh: String, auth: String } }, opts));
 // Seasonal top reward bought with tokens (e.g. a trip), limited spots.
 export const Bounty = model("Bounty", new Schema({ title: String, description: String, reward: Number, starts: Date, ends: Date, active: { type: Boolean, default: true }, slots: Number, claimed: [id("User")], img: String }, opts));
 export const Notification = model("Notification", new Schema({ user: { ...id("User"), index: true }, kind: String, text: String, link: String, read: { type: Boolean, default: false } }, opts));
