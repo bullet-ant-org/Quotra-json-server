@@ -1,4 +1,5 @@
 import { useScrollLock } from "../../lib/useScrollLock";
+import { useHeartBurst, useTap } from "../../lib/tap";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Heart, Plus, Repeat2, Send, X } from "lucide-react";
@@ -23,6 +24,9 @@ function Viewer({ groups, start, onSeen, onClose }: { groups: Story[][]; start: 
   const list = groups[g]; const st = list[i]; const a = person(s, st.authorId);
   const next = () => (i < list.length - 1 ? setI(i + 1) : g < groups.length - 1 ? (setG(g + 1), setI(0)) : onClose());
   const prev = () => (i > 0 ? setI(i - 1) : g > 0 ? (setG(g - 1), setI(0)) : undefined);
+  const [burst, heart] = useHeartBurst();
+  const likeNow = () => { burst(); setLiked((l) => (l.includes(st.id) ? l : [...l, st.id])); };
+  const tapLeft = useTap(prev, likeNow), tapRight = useTap(next, likeNow), tapMid = useTap(() => setPaused((p) => !p), likeNow);
   useEffect(() => { onSeen(st.id); if (paused || share) return; const t = setTimeout(next, 5000); return () => clearTimeout(t); }); // eslint-disable-line react-hooks/exhaustive-deps
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label={`${a.name}'s story`} className="fixed inset-0 z-[80] grid place-items-center overflow-hidden bg-black" style={{ touchAction: "none" }} onWheel={(e) => e.stopPropagation()}>
@@ -34,8 +38,10 @@ function Viewer({ groups, start, onSeen, onClose }: { groups: Story[][]; start: 
           <div className="mt-3 flex items-center gap-2 text-white"><img src={a.avatar} alt="" className="size-9 rounded-full object-cover" /><span className="font-semibold">{a.username}</span><span className="text-sm opacity-70">{ago(st.at)}</span>
             <button onClick={onClose} className="ml-auto grid size-9 place-items-center" aria-label="Close"><X /></button></div>
         </div>
-        <button className="absolute inset-y-16 left-0 w-1/3" onClick={prev} aria-label="Previous story" />
-        <button className="absolute inset-y-16 right-0 w-1/3" onClick={next} aria-label="Next story" />
+        {heart}
+        <button className="absolute inset-y-16 left-0 w-1/3" onClick={tapLeft} aria-label="Previous story" />
+        <button className="absolute inset-y-16 left-1/3 w-1/3" onClick={tapMid} aria-label="Pause story" />
+        <button className="absolute inset-y-16 right-0 w-1/3" onClick={tapRight} aria-label="Next story" />
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pb-4 pt-10">
           {toast && <p role="status" className="mb-2 text-center text-sm font-semibold text-white">{toast}</p>}
           <form onSubmit={(e) => { e.preventDefault(); if (reply.trim()) { actions.sendMessage(actions.openChat(a.id), { kind: "text", text: `Replied to your story: ${reply.trim()}` }); setReply(""); setToast("Sent"); setTimeout(() => setToast(null), 1500); } }} className="flex items-center gap-2">

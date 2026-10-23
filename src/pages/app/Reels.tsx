@@ -1,5 +1,6 @@
 import { vsrc } from "../../lib/media";
 import { Fragment, useEffect, useRef, useState } from "react";
+import { useHeartBurst, useTap } from "../../lib/tap";
 import { CommentsSheet } from "../../components/feed/CommentsSheet";
 import { ShareSheet } from "../../components/feed/ShareSheet";
 import { Link } from "react-router-dom";
@@ -39,6 +40,7 @@ export default function Reels() {
               : m.type === "video" ? <video src={vsrc(m.src)} autoPlay={now} loop muted playsInline preload={now ? "auto" : "metadata"} ref={(v) => { if (v) (now ? v.play().catch(() => {}) : v.pause()); }} className="size-full object-cover" />
               : <img src={m.src} alt="" loading={now ? "eager" : "lazy"} fetchPriority={now ? "high" : "low"} decoding="async" className={`size-full object-cover ${now ? "motion-safe:animate-[kenburns_14s_ease-in-out_infinite_alternate]" : ""}`} />}
             <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80" />
+            <ReelTap onLike={() => { if (!liked) actions.toggleLike(post.id); }} />
             <div className="absolute bottom-24 left-4 right-20 text-white lg:bottom-8">
               <Link to={a.id === s.me ? "/profile" : `/u/${a.username}`} className="flex items-center gap-2"><img src={a.avatar} alt="" className="size-10 rounded-full object-cover ring-2 ring-white" /><span className="font-bold">@{a.username}</span>
                 {a.id !== s.me && <button onClick={(e) => { e.preventDefault(); actions.follow(a.id); }} className="rounded-full border border-white/70 px-3 py-1 text-xs font-bold">{a.following ? "Following" : "Follow"}</button>}</Link>
@@ -75,4 +77,12 @@ function SponsoredReel({ ad }: { ad: Ad }) {
       </div>
     </section>
   );
+}
+
+// Full-reel tap layer under the buttons: double-tap likes, single tap mutes/unmutes the video.
+function ReelTap({ onLike }: { onLike: () => void }) {
+  const [burst, heart] = useHeartBurst();
+  const ref = useRef<HTMLDivElement>(null);
+  const tap = useTap(() => { const v = ref.current?.parentElement?.querySelector("video"); if (v) v.muted = !v.muted; }, () => { burst(); onLike(); });
+  return <div ref={ref} onClick={tap} className="absolute inset-0">{heart}</div>;
 }

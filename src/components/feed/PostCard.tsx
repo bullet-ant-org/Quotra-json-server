@@ -60,7 +60,7 @@ export function PostCard({ post, onVisible, priority = false }: { post: Post; on
         </div>
       </header>
 
-      {post.media.length ? <div onDoubleClick={() => !liked && actions.toggleLike(post.id)}><MediaGrid media={post.media} postId={post.id} priority={priority} /></div>
+      {post.media.length ? <MediaGrid media={post.media} postId={post.id} priority={priority} onLike={() => { if (!liked) actions.toggleLike(post.id); }} />
         : <p className="bg-gradient-to-br from-accent to-accent-text px-6 py-16 text-center font-display text-2xl font-bold text-white"><RichText text={post.text} /></p>}
 
       <div className="flex items-center gap-1 px-2 pt-1.5">
