@@ -5,6 +5,8 @@ import { actions, passSlots, PLATFORM, useStore, type Placement, type Platform }
 import { destinations, destPhoto, bySlug } from "../../fixtures/destinations";
 import { Area, Badge, Bars, btn, btn2, Card, Donut, inputCls, Shell, Stat, Tile } from "./Shell";
 import { useTitle } from "../../lib/useTitle";
+import { useAuth } from "../../lib/auth/AuthContext";
+import { LoginDetails } from "../../components/LoginDetails";
 
 const nav = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
@@ -22,16 +24,24 @@ function Overview() {
   const s = useStore((x) => x);
   const claimed = s.passes.reduce((n, p) => n + p.claimed.length * p.perPerson, 0);
   const live = s.ads.filter((a) => a.status === "live");
+  // Live API numbers when connected; sample figures in demo mode.
+  const st = s.stats;
+  const series = st?.series ?? [820, 760, 910, 1040, 1480, 2210, 1930, 990, 870, 1120, 1260, 1690, 2480, 2140];
+  const total = series.reduce((a, b) => a + b, 0), half = series.slice(7).reduce((a, b) => a + b, 0), prev = series.slice(0, 7).reduce((a, b) => a + b, 0);
+  const cats = st?.categories?.length ? st.categories : st ? [{ label: "No check-ins yet", value: 1 }] : [{ label: "Food & drinks", value: 41 }, { label: "Nightlife", value: 27 }, { label: "Beaches & parks", value: 18 }, { label: "Stays", value: 9 }, { label: "Other", value: 5 }];
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], week = Array(7).fill(0) as number[];
+  series.forEach((n, i) => { week[(new Date(Date.now() - (series.length - 1 - i) * 864e5).getDay() + 6) % 7] += n; });
+  const short = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
   return (
     <div className="grid auto-rows-[minmax(7.5rem,auto)] gap-4 sm:grid-cols-2 xl:grid-cols-6">
-      <Tile hot label="Registered users" value={18420} sub="+640 this week" className="xl:col-span-2" />
-      <Tile label="Check-ins · 14 days" value={16_920} sub="+22% vs previous" className="sm:col-span-2 sm:row-span-2 xl:col-span-4">
-        <div className="h-40"><Area data={[820, 760, 910, 1040, 1480, 2210, 1930, 990, 870, 1120, 1260, 1690, 2480, 2140]} /></div>
+      <Tile hot label="Registered users" value={st ? Number(st.users) : 18420} sub={`+${st ? Number(st.newUsers) : 640} this week`} className="xl:col-span-2" />
+      <Tile label="Check-ins · 14 days" value={total} sub={prev ? `${half >= prev ? "+" : ""}${Math.round(((half - prev) / prev) * 100)}% vs previous week` : "This week"} className="sm:col-span-2 sm:row-span-2 xl:col-span-4">
+        <div className="h-40"><Area data={series} /></div>
       </Tile>
-      <Tile label="Ad revenue" value={`₦${(s.adRevenue ?? 0).toLocaleString()}`} sub={`${live.length} live campaigns`} />
-      <Tile label="Tokens redeemed today" value={claimed} sub={`${s.passes.filter((p) => p.active).length} live passes`} />
-      <Tile label="Where people go" className="sm:col-span-2 xl:col-span-3 xl:row-span-2">
-        <Donut center="16.9k" data={[{ label: "Food & drinks", value: 41 }, { label: "Nightlife", value: 27 }, { label: "Beaches & parks", value: 18 }, { label: "Stays", value: 9 }, { label: "Other", value: 5 }]} />
+      <Tile label="Ad revenue" value={`₦${(st ? Number(st.adRevenue) : s.adRevenue ?? 0).toLocaleString()}`} sub={`${st ? Number(st.liveAds) : live.length} live campaigns`} />
+      <Tile label="Tokens redeemed today" value={st ? Number(st.tokensRedeemedToday) : claimed} sub={`${s.passes.filter((p) => p.active).length} live passes`} />
+      <Tile label="Where people go · 30 days" className="sm:col-span-2 xl:col-span-3 xl:row-span-2">
+        <Donut center={short(cats.reduce((a, c) => a + c.value, 0))} data={cats.slice(0, 5).map((c) => ({ ...c, label: c.label[0].toUpperCase() + c.label.slice(1) }))} />
       </Tile>
       <Tile label="Today's passes" className="sm:col-span-2 xl:col-span-3 xl:row-span-2">
         <ul className="space-y-3">{s.passes.slice(0, 4).map((p) => { const sl = passSlots(p); return (
@@ -39,15 +49,16 @@ function Overview() {
             <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-accent" style={{ width: `${(p.claimed.length / sl) * 100}%` }} /></div></li>
         ); })}</ul>
       </Tile>
-      <Tile label="Active brands" value={312} sub={`${s.places.filter((p) => p.status === "pending").length} waiting for review`} />
-      <Tile label="Event reservations" value={s.events.reduce((n, e) => n + e.reserved.length, 0)} sub={`${s.events.filter((e) => e.slots).length} sponsored`} />
-      <Tile label="Weekly check-ins by day" className="sm:col-span-2 xl:col-span-4"><Bars data={[["Mon", 820], ["Tue", 760], ["Wed", 910], ["Thu", 1040], ["Fri", 1480], ["Sat", 2210], ["Sun", 1930]].map(([label, value]) => ({ label: label as string, value: value as number }))} /></Tile>
+      <Tile label="Active brands" value={st ? Number(st.brands) : 312} sub={`${st ? Number(st.pendingPlaces) : s.places.filter((p) => p.status === "pending").length} places waiting for review`} />
+      <Tile label="Event reservations" value={st ? Number(st.reservations) : s.events.reduce((n, e) => n + e.reserved.length, 0)} sub={`${s.events.filter((e) => e.slots).length} sponsored`} />
+      <Tile label="Check-ins by day · 14 days" className="sm:col-span-2 xl:col-span-4"><Bars data={days.map((label, i) => ({ label, value: week[i] }))} /></Tile>
     </div>
   );
 }
 
 // Every price, reward and ranking knob on the platform.
 function PlatformAdmin() {
+  const { user } = useAuth();
   const cur = useStore((x) => x.platform) ?? PLATFORM;
   const [p, setP] = useState<Platform>(structuredClone(cur));
   const [saved, setSaved] = useState(false);
@@ -98,6 +109,7 @@ function PlatformAdmin() {
           {num("Engagement bar (%)", +(p.minEngagementRate * 100).toFixed(1), (n) => setP({ ...p, minEngagementRate: n / 100 }), "weighted engagement per impression", 0.5)}
         </div>
       </Card>
+      <Card className="max-w-md space-y-3"><h2 className="font-display text-lg font-bold">Admin login</h2><p className="text-sm text-muted">Change the email and password you use to sign in here.</p><LoginDetails email={user?.email} /></Card>
       <div className="sticky bottom-4 flex justify-end"><button onClick={() => { actions.setPlatform(p); setSaved(true); setTimeout(() => setSaved(false), 1500); }} className={`${btn} shadow-lg`}>{saved ? "Saved ✓" : "Save platform settings"}</button></div>
     </div>
   );
@@ -275,16 +287,19 @@ function AdsAdmin() {
   );
 }
 
+const SAMPLE_REPORTS = [
+  { id: "r1", what: "Post by @chidi.eze", why: "Spam", at: Date.now() - 12 * 60e3 },
+  { id: "r2", what: "Review of Skyline Lounge", why: "Fake review", at: Date.now() - 36e5 },
+];
 function Reports() {
-  const [items, setItems] = useState([
-    { id: 1, what: "Post by @chidi.eze", why: "Spam", when: "12m" },
-    { id: 2, what: "Review of Skyline Lounge", why: "Fake review", when: "1h" },
-    { id: 3, what: "@zaraoutside", why: "Impersonation", when: "3h" },
-  ]);
+  const live = useStore((x) => x.reports);
+  const [demo, setDemo] = useState(SAMPLE_REPORTS);
+  const items = live ?? demo;
+  const act = (id: string, a: "dismiss" | "remove") => (live ? actions.resolveReport(id, a) : setDemo(demo.filter((x) => x.id !== id)));
   return items.length ? (
     <div className="space-y-3">{items.map((r) => (
-      <Card key={r.id} className="flex flex-wrap items-center gap-4"><Flag className="size-5 text-accent" /><div className="flex-1"><p className="font-bold">{r.what}</p><p className="text-sm text-muted">{r.why} · {r.when} ago</p></div>
-        <button onClick={() => setItems(items.filter((x) => x.id !== r.id))} className={btn2}>Dismiss</button><button onClick={() => setItems(items.filter((x) => x.id !== r.id))} className={btn}>Remove content</button></Card>
+      <Card key={r.id} className="flex flex-wrap items-center gap-4"><Flag className="size-5 text-accent" /><div className="flex-1"><p className="font-bold">{r.what}</p><p className="text-sm text-muted">{r.why} · {new Date(r.at).toLocaleString()}</p></div>
+        <button onClick={() => act(r.id, "dismiss")} className={btn2}>Dismiss</button><button onClick={() => act(r.id, "remove")} className={btn}>Remove content</button></Card>
     ))}</div>
   ) : <Card className="text-center text-muted">Queue is clear.</Card>;
 }

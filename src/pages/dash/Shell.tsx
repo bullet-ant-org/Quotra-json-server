@@ -54,7 +54,7 @@ export const btn = "rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-ac
 export const btn2 = "rounded-full bg-surface px-4 py-2 text-sm font-bold hover:bg-surface-2";
 
 export function Bars({ data }: { data: { label: string; value: number }[] }) {
-  const max = Math.max(...data.map((d) => d.value));
+  const max = Math.max(1, ...data.map((d) => d.value));
   return (
     <div className="flex h-44 items-end gap-2" role="img" aria-label={data.map((d) => `${d.label}: ${d.value}`).join(", ")}>
       {data.map((d, i) => (

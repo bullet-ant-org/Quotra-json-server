@@ -17,6 +17,9 @@ export interface Txn { id: string; label: string; amount: number; at: number }
 export interface Ad { id: string; format?: Placement; title: string; body: string; budget: number; status: "live" | "paused" | "review"; reach: number; objective?: "reach" | "visits" | "engagement"; credits?: number; spent?: number; days?: number; city?: string; interests?: string[]; ages?: [number, number]; img?: string; cta?: string; place?: string; clicks?: number }
 export interface AdSettings { pricePerCredit: number; creditsPer1kViews: number; minCredits: number }
 export type Placement = "feed" | "reel" | "story";
+// Live dashboard numbers from the API (absent in demo mode, where sample figures are shown).
+export interface Stats { [k: string]: number | { label: string; value: number }[] | number[] | undefined; series?: number[]; weekday?: number[]; categories?: { label: string; value: number }[] }
+export interface ReportItem { id: string; what: string; why: string; at: number }
 // Every platform price and reward; mirrors the backend's settings DEFAULTS.
 export interface Platform {
   pricePerCredit: number; minCredits: number; creditsPer1k: Record<Placement, number>; adEvery: number; adFormats: Record<Placement, boolean>;
@@ -41,7 +44,7 @@ export interface State {
   me: string; people: Person[]; posts: Post[]; stories: Story[]; highlights: Highlight[];
   balance: number; txns: Txn[]; passes: Pass[]; events: EventItem[]; blocked: string[];
   ads: Ad[]; requests: VisitReq[]; places: Place[];
-  adCredits?: number; adSettings?: AdSettings; platform?: Platform; adRevenue?: number;
+  adCredits?: number; adSettings?: AdSettings; platform?: Platform; stats?: Stats; reports?: ReportItem[]; adRevenue?: number;
   saved?: string[]; bounties?: Bounty[]; visits?: Visit[]; chats?: Chat[]; referral?: Referral;
   unread?: number; pv?: number; // pv bumps when the place catalogue reloads
 }
@@ -169,6 +172,7 @@ export const actions = {
   toggleSave: (id: string) => set((s) => { s.saved ??= []; const on = s.saved.includes(id); s.saved = on ? s.saved.filter((x) => x !== id) : [...s.saved, id]; const p = s.posts.find((x) => x.id === id); if (p) p.saves = Math.max(0, (p.saves ?? 0) + (on ? -1 : 1)); }),
   adClick: (id: string) => set((s) => { const a = s.ads.find((x) => x.id === id); if (a) a.clicks = (a.clicks ?? 0) + 1; }),
   adSeen: (id: string) => set((s) => { const a = s.ads.find((x) => x.id === id); if (a) a.reach += 1; }),
+  resolveReport: (id: string, _action: "dismiss" | "remove") => set((s) => { s.reports = (s.reports ?? []).filter((r) => r.id !== id); }),
   setPlatform: (p: Platform) => set((s) => { s.platform = p; s.adSettings = { pricePerCredit: p.pricePerCredit, minCredits: p.minCredits, creditsPer1kViews: p.creditsPer1k.feed }; }),
   view: (id: string, _ms = 0) => set((s) => { const p = s.posts.find((x) => x.id === id); if (p) p.views = (p.views ?? 0) + 1; }),
   shared: (id: string) => set((s) => { const p = s.posts.find((x) => x.id === id); if (p) p.shares = (p.shares ?? 0) + 1; }),

@@ -73,12 +73,20 @@ export async function loadUser(u: User) {
 const mapBounty = (b: A) => ({ id: b.id, title: b.title, description: b.description ?? "", reward: b.reward, starts: String(b.starts).slice(0, 10), ends: String(b.ends).slice(0, 10), active: b.active, slots: b.slots, claimed: (b.claimed ?? []).map((c: A) => String(c.id ?? c)), img: b.img });
 const toBounty = (b: A) => ({ title: b.title, description: b.description, reward: b.reward, starts: b.starts, ends: b.ends, active: b.active, slots: b.slots, ...(b.img?.startsWith("http") ? { img: b.img } : {}) });
 
+const mapAd = (a: A) => ({ ...a, status: a.status === "rejected" ? "paused" : a.status, place: a.place?.slug });
+const series = (d: A[]) => d.map((x: A) => x.n);
+const loadAdminStats = () => Promise.all([get<A>("/admin/overview"), get<A>("/admin/reports")]).then(([o, r]) => set((s) => {
+  s.stats = { ...o, series: series(o.checkins), categories: o.categories };
+  s.reports = r.items.map((x: A) => ({ id: x.id, what: `${x.target} ${x.targetId ?? ""}`.trim(), why: x.reason, at: ts(x.createdAt) }));
+})).catch(() => {});
+
 export async function loadBrand(u: User) {
+  get<A>("/brand/overview").then((o) => set((s) => { s.stats = { ...o, series: series(o.daily), categories: o.byPlace }; })).catch(() => {});
   const [ads, reqs, places, events] = await Promise.all([get<A>("/brand/ads"), get<A>("/brand/requests"), get<A>("/brand/places"), get<A>("/brand/events")]);
   set((s) => {
     s.me = u.id;
     addPeople(s, [{ ...u }, ...reqs.items.map((r: A) => r.from)]);
-    s.ads = ads.items.map((a: A) => ({ ...a, status: a.status === "rejected" ? "paused" : a.status, place: undefined }));
+    s.ads = ads.items.map(mapAd);
     s.adCredits = ads.credits; s.adSettings = ads.settings;
     s.requests = reqs.items.map((r: A) => ({ id: r.id, from: r.from?.id, date: day(r.date), people: r.people, note: r.note, status: r.status }));
     s.places = places.items.map((p: A) => { placeIds.set(p.slug, p.id); return { slug: p.slug, name: p.name, owner: u.id, status: p.status }; });
@@ -93,10 +101,11 @@ export async function loadAdmin() {
     s.passes = passes.items.map(mapPass);
     s.events = events.items.map(mapEvent);
     s.places = places.items.map((p: A) => { placeIds.set(p.slug, p.id); return { slug: p.slug, name: p.name, owner: p.owner?.id ?? "", status: p.status }; });
-    s.ads = ads.items.map((a: A) => ({ ...a, status: a.status === "rejected" ? "paused" : a.status, place: undefined }));
+    s.ads = ads.items.map(mapAd);
     s.adSettings = adSet.settings;
     request<{ settings: A }>("GET", "/admin/settings").then((r) => set((x) => { x.platform = r.settings; })).catch(() => {});
   });
+  loadAdminStats();
   get<A>("/admin/bounties").then((r) => set((x) => { x.bounties = r.items.map(mapBounty); })).catch(() => {});
 }
 
@@ -185,8 +194,9 @@ if (LIVE) {
     setUserStatus: (id: string, status: string) => run(() => request("PATCH", `/admin/users/${id}`, { status })),
     setPlace: (slug: string, status: string) => run(() => request("PATCH", `/admin/places/${pid(slug)}`, { status })),
     addPlace: (p: A) => run(() => post("/brand/places", p)),
-    addAd: (a: A) => run(() => post("/brand/ads", { title: a.title, body: a.body, img: a.img || undefined, credits: a.credits, objective: a.objective, days: a.days, city: a.city, interests: a.interests, ages: a.ages, cta: a.cta, place: a.place })),
+    addAd: (a: A) => run(() => post("/brand/ads", { title: a.title, body: a.body, img: a.img || undefined, credits: a.credits, objective: a.objective, days: a.days, city: a.city, interests: a.interests, ages: a.ages, cta: a.cta, place: a.place, format: a.format })),
     setAdSettings: (st: A) => run(() => request("PUT", "/admin/ad-settings", st)),
+    resolveReport: (id: string, action: "dismiss" | "remove") => run(() => request("PATCH", `/admin/reports/${id}`, { action })),
     setAd: (id: string, status: string) => run(() => request("PATCH", `/${current?.role === "admin" ? "admin" : "brand"}/ads/${id}`, { status })),
     setRequest: (id: string, status: string) => run(() => request("PATCH", `/brand/requests/${id}`, { status })),
     requestVisit: (note: string, date: string, people: number, place?: string) => run(() => post("/brand/visit-requests", { note, date, people, place })),

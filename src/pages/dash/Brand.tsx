@@ -110,14 +110,19 @@ function Overview() {
   const s = useStore((x) => x);
   const live = s.ads.filter((a) => a.status === "live");
   const reach = live.reduce((n, a) => n + a.reach, 0), clicks = live.reduce((n, a) => n + (a.clicks ?? 0), 0);
+  const st = s.stats;
+  const series = st?.series ?? [42, 38, 51, 47, 88, 132, 117, 49, 44, 58, 61, 97, 141, 126];
+  const total = series.reduce((a, b) => a + b, 0), half = series.slice(7).reduce((a, b) => a + b, 0), prev = series.slice(0, 7).reduce((a, b) => a + b, 0);
+  const week = st?.weekday ?? [42, 38, 51, 47, 88, 132, 117];
+  const places = st?.categories?.length ? st.categories : st ? [{ label: "No visits yet", value: 1 }] : [{ label: "Palmfringe Beach Resort", value: 74 }, { label: "Pool deck", value: 26 }];
   return (
     <div className="grid auto-rows-[minmax(7.5rem,auto)] gap-4 sm:grid-cols-2 xl:grid-cols-6">
-      <Tile label="Visitors · 14 days" value={1_036} sub="+18% vs previous" className="sm:col-span-2 sm:row-span-2 xl:col-span-4">
-        <div className="h-40"><Area data={[42, 38, 51, 47, 88, 132, 117, 49, 44, 58, 61, 97, 141, 126]} /></div>
+      <Tile label="Visitors · 14 days" value={total} sub={prev ? `${half >= prev ? "+" : ""}${Math.round(((half - prev) / prev) * 100)}% vs previous week` : "This week"} className="sm:col-span-2 sm:row-span-2 xl:col-span-4">
+        <div className="h-40"><Area data={series} /></div>
       </Tile>
       <Tile hot label="Ad credits" value={(s.adCredits ?? 0).toLocaleString()} sub={`${live.length} live campaigns`} className="xl:col-span-2"><Link to="/brand/ads" className="inline-block rounded-full bg-white/20 px-4 py-2 text-sm font-bold">Top up / new ad</Link></Tile>
-      <Tile label="Profile views" value={8420} sub="7 days" />
-      <Tile label="Direction taps" value={1206} sub="people heading your way" />
+      <Tile label="Followers" value={st ? Number(st.followers) : 8420} sub="people following you" />
+      <Tile label="Repeat visitors" value={st ? Number(st.repeatVisitors) : 206} sub="came back more than once" />
       <Tile label="Ad performance" className="sm:col-span-2 xl:col-span-2">
         <div className="space-y-3 text-sm">
           <div className="flex justify-between"><span className="text-muted">Views</span><b>{reach.toLocaleString()}</b></div>
@@ -126,11 +131,11 @@ function Overview() {
           <div className="h-2 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, reach ? (clicks / reach) * 1000 : 0)}%` }} /></div>
         </div>
       </Tile>
-      <Tile label="Who visits" className="sm:col-span-2 xl:col-span-2"><Donut center="1k" data={[{ label: "18–24", value: 34 }, { label: "25–34", value: 41 }, { label: "35–44", value: 17 }, { label: "45+", value: 8 }]} /></Tile>
-      <Tile label="Pending visit requests" value={s.requests.filter((r) => r.status === "pending").length} />
-      <Tile label="Passes redeemed" value={s.passes.filter((p) => p.place === "palmfringe-beach-resort").reduce((n, p) => n + p.claimed.length, 0)} sub="Funded by Outsider" />
+      <Tile label="Visits by place" className="sm:col-span-2 xl:col-span-2"><Donut center={String(places.reduce((a, c) => a + c.value, 0))} data={places} /></Tile>
+      <Tile label="Pending visit requests" value={st ? Number(st.pendingRequests) : s.requests.filter((r) => r.status === "pending").length} />
+      <Tile label="Passes redeemed" value={st ? Number(st.passesRedeemed) : s.passes.filter((p) => p.place === "palmfringe-beach-resort").reduce((n, p) => n + p.claimed.length, 0)} sub="Funded by Outsider" />
       <Tile label="Latest requests" className="sm:col-span-2 xl:col-span-3"><Requests limit={2} /></Tile>
-      <Tile label="Busiest days" className="sm:col-span-2 xl:col-span-3"><Bars data={[["Mon", 42], ["Tue", 38], ["Wed", 51], ["Thu", 47], ["Fri", 88], ["Sat", 132], ["Sun", 117]].map(([label, value]) => ({ label: label as string, value: value as number }))} /></Tile>
+      <Tile label="Busiest days" className="sm:col-span-2 xl:col-span-3"><Bars data={["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label, i) => ({ label, value: week[i] }))} /></Tile>
     </div>
   );
 }

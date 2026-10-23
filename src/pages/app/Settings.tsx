@@ -5,6 +5,7 @@ import { useAuth } from "../../lib/auth/AuthContext";
 import { interests } from "../../fixtures/account";
 import { actions, person, useStore } from "../../lib/store";
 import { useTitle } from "../../lib/useTitle";
+import { LoginDetails } from "../../components/LoginDetails";
 
 function Toggle({ label, hint, defaultOn = false }: { label: string; hint?: string; defaultOn?: boolean }) {
   const [on, setOn] = useState(defaultOn);
@@ -72,10 +73,7 @@ export default function Settings() {
       </section>
 
       <section className="space-y-3"><h2 className="text-lg font-bold">Security</h2>
-        <div className={group}>
-          <Toggle label="Two-step verification" hint="Ask for a code when you log in on a new device" />
-          <div className="flex items-center justify-between px-4 py-4"><span><span className="block font-semibold">Active sessions</span><span className="text-sm text-muted">This browser</span></span><button className="text-sm font-bold text-accent-text">Log out others</button></div>
-        </div>
+        <div className={`${group} p-4`}><LoginDetails email={user?.email} /></div>
       </section>
 
       <section className="space-y-3"><h2 className="text-lg font-bold">Your data</h2>
