@@ -82,7 +82,7 @@ r.get("/ad-credits/verify/:reference", h(async (req, res) => {
 r.post("/ads", h(async (req, res) => {
   const d = z.object({ title: z.string().trim().min(2).max(60), body: z.string().trim().min(2).max(200), img: z.string().url().optional(), credits: z.number().int().min(1),
     objective: z.enum(["reach", "visits", "engagement"]).default("reach"), days: z.number().int().min(1).max(90).default(7), city: z.string().optional(), interests: z.array(z.string()).max(20).default([]),
-    ages: z.array(z.number().int()).length(2).optional(), cta: z.string().max(30).optional(), place: z.string().optional() }).parse(req.body);
+    ages: z.array(z.number().int()).length(2).optional(), cta: z.string().max(30).optional(), format: z.enum(["feed", "reel", "story"]).default("feed"), place: z.string().optional() }).parse(req.body);
   // Reserve the campaign's credits up front; the ad then goes to review.
   const r = await User.updateOne({ _id: req.user._id, adCredits: { $gte: d.credits } }, { $inc: { adCredits: -d.credits } });
   if (!r.modifiedCount) throw bad("Not enough ad credits. Buy more to launch this campaign.");
