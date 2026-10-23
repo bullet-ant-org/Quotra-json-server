@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { CalendarDays, Clapperboard, Coins, Compass, Home as HomeIcon, MessageCircle, Ticket, User } from "lucide-react";
 import { Stories } from "../../components/feed/Stories";
+import { PushPrompt } from "../../components/PushPrompt";
 import { Composer } from "../../components/feed/PostComposer";
 import { PostCard } from "../../components/feed/PostCard";
 import { actions, passSlots, person, useStore } from "../../lib/store";
@@ -77,6 +78,7 @@ export default function Home() {
         {posts.length === 0 && !s.stories.length && <FeedSkeleton />}
         {refreshing && <p className="text-center text-sm font-semibold text-accent-text" role="status">Refreshing…</p>}
         <Stories />
+        {LIVE && <PushPrompt />}
         <Composer />
         {posts.slice(0, shown).map((p, i) => (
           <Slot key={p.id} id={p.id} live={Math.abs(i - active) <= 4}>

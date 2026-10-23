@@ -25,6 +25,7 @@ Go to Render, then New → Blueprint, pick the repo and the `roamly-backend` bra
 | `MAIL_FROM_EMAIL` | a sender verified in Brevo, e.g. `hello@outsider.ng` |
 | `MAIL_FROM_NAME` | `Outsider` |
 | `PAYSTACK_SECRET_KEY` | Paystack → Settings → API keys (`sk_live_…`) |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | push notifications: run `npx web-push generate-vapid-keys` once and paste both |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Cloud → Credentials → OAuth client (Web) |
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Cloudinary dashboard |
 

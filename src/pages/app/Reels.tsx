@@ -1,5 +1,7 @@
 import { vsrc } from "../../lib/media";
 import { Fragment, useEffect, useRef, useState } from "react";
+import { CommentsSheet } from "../../components/feed/CommentsSheet";
+import { ShareSheet } from "../../components/feed/ShareSheet";
 import { Link } from "react-router-dom";
 import { Bookmark, Heart, MapPin, MessageCircle, Send } from "lucide-react";
 import { actions, person, useStore, commentCount, type Ad } from "../../lib/store";
@@ -13,6 +15,7 @@ export default function Reels() {
   const reels = s.posts.filter((p) => p.media.length && !s.blocked.includes(p.authorId)).flatMap((p) => p.media.slice(0, 2).map((m, i) => ({ post: p, m, key: `${p.id}-${i}` })));
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [cur, setCur] = useState(0);
+  const [sheet, setSheet] = useState<{ kind: "comments" | "share"; id: string; image?: string } | null>(null);
   const box = useRef<HTMLDivElement>(null);
   // Track which reel is on screen; it gets full priority, the next 4 preload, the rest stay empty.
   useEffect(() => {
@@ -44,14 +47,16 @@ export default function Reels() {
             </div>
             <div className="absolute bottom-24 right-3 flex flex-col items-center gap-5 text-white lg:bottom-8">
               <button onClick={() => actions.toggleLike(post.id)} className="flex flex-col items-center text-xs font-bold" aria-pressed={liked}><Heart className={`size-8 ${liked ? "fill-accent text-accent" : ""}`} />{post.likes.length}</button>
-              <Link to="/home" className="flex flex-col items-center text-xs font-bold"><MessageCircle className="size-8" />{commentCount(post)}</Link>
+              <button onClick={() => setSheet({ kind: "comments", id: post.id })} className="flex flex-col items-center text-xs font-bold" aria-label="Comments"><MessageCircle className="size-8" />{commentCount(post)}</button>
               <button onClick={() => setSaved((x) => { const n = new Set(x); n.has(key) ? n.delete(key) : n.add(key); return n; })} className="flex flex-col items-center text-xs font-bold"><Bookmark className={`size-8 ${saved.has(key) ? "fill-white" : ""}`} />Save</button>
-              <button onClick={async () => { try { await navigator.share?.({ text: post.text }); } catch { /* */ } }} className="flex flex-col items-center text-xs font-bold"><Send className="size-8" />Share</button>
+              <button onClick={() => setSheet({ kind: "share", id: post.id, image: post.media.find((x) => x.type === "image")?.src })} className="flex flex-col items-center text-xs font-bold"><Send className="size-8" />Share</button>
             </div>
           </section>
           {i % every === every - 1 && ads.length > 0 && <SponsoredReel ad={ads[Math.floor(i / every) % ads.length]} />}
         </Fragment>);
       })}
+      {sheet?.kind === "comments" && <CommentsSheet postId={sheet.id} onClose={() => setSheet(null)} />}
+      {sheet?.kind === "share" && <ShareSheet item={{ kind: "post", postId: sheet.id, image: sheet.image }} onClose={() => setSheet(null)} />}
     </div>
   );
 }

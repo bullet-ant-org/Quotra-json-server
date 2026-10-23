@@ -4,7 +4,9 @@ import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { post } from "../../lib/api";
 import { LIVE } from "../../lib/store";
 import { createPortal } from "react-dom";
-import { Clapperboard, Grid3x3, Plus, SquareUser, X } from "lucide-react";
+import { ArrowLeft, Camera, Clapperboard, Grid3x3, Plus, SquareUser, X } from "lucide-react";
+import { ImageCropper } from "../../components/ImageCropper";
+import { PostCard } from "../../components/feed/PostCard";
 import { MediaBadge } from "../../components/feed/MediaGrid";
 import { actions, person, useStore, type Highlight, type Media } from "../../lib/store";
 import { fileToMedia } from "../../lib/media";
@@ -45,6 +47,9 @@ export default function Profile() {
   const [tab, setTab] = useState<"posts" | "reels" | "tagged">("posts");
   const [newH, setNewH] = useState(false);
   const [view, setView] = useState<{ media: Media[]; i: number } | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  const [crop, setCrop] = useState<{ file: File; kind: "avatar" | "cover" } | null>(null);
+  const pick = (kind: "avatar" | "cover") => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = () => { const f = i.files?.[0]; if (f) setCrop({ file: f, kind }); }; i.click(); };
   if (!p) return <p className="p-10 text-center text-muted">That outsider doesn't exist.</p>;
   if (username && p.id === s.me) return <Navigate to="/profile" replace />;
   const isMe = p.id === s.me;
@@ -58,11 +63,17 @@ export default function Profile() {
   const stats = [[posts.length, "Posts"], [isMe ? 1248 : 3410, "Followers"], [isMe ? s.people.filter((x) => x.following).length : 182, "Following"]] as const;
   return (
     <div className="mx-auto max-w-4xl pb-10">
-      <div className="px-4 pt-5 sm:px-8">
-        <div className="flex items-center gap-5 sm:gap-12">
+      {/* Banner fades into the page; the avatar sits over its lower edge. */}
+      <div className="relative h-44 overflow-hidden sm:h-64 sm:rounded-b-3xl">
+        {p.cover ? <img src={p.cover} alt="" className="size-full object-cover" /> : <div className="size-full bg-gradient-to-br from-accent via-orange-400 to-amber-300" />}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-bg" />
+        {isMe && <button onClick={() => pick("cover")} className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/45 px-3 py-1.5 text-xs font-bold text-white backdrop-blur"><Camera className="size-4" />{p.cover ? "Change banner" : "Add banner"}</button>}
+      </div>
+      <div className="relative -mt-14 px-4 sm:-mt-20 sm:px-8">
+        <div className="flex items-end gap-5 sm:gap-12">
           <div className="relative shrink-0">
-            <span className="block rounded-full bg-gradient-to-tr from-amber-400 via-accent to-fuchsia-600 p-[3px]"><img src={p.avatar} alt="" className="size-20 rounded-full object-cover ring-4 ring-bg sm:size-36" /></span>
-            {isMe && <button onClick={() => setNewH(true)} className="absolute bottom-0.5 right-0.5 grid size-6 place-items-center rounded-full bg-accent text-accent-ink ring-[3px] ring-bg sm:size-8" aria-label="Add highlight"><Plus className="size-4" /></button>}
+            <span className="block rounded-full bg-gradient-to-tr from-amber-400 via-accent to-fuchsia-600 p-[3px]"><img src={p.avatar} alt="" className="size-24 rounded-full object-cover ring-4 ring-bg sm:size-36" /></span>
+            {isMe && <button onClick={() => pick("avatar")} className="absolute bottom-0.5 right-0.5 grid size-8 place-items-center rounded-full bg-accent text-accent-ink ring-[3px] ring-bg sm:size-9" aria-label="Change profile photo"><Camera className="size-4" /></button>}
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="mb-3 hidden truncate text-xl font-bold sm:block">{p.username}</h1>
@@ -105,7 +116,7 @@ export default function Profile() {
         {shown.length ? (
           <ul className={`grid grid-cols-3 gap-0.5 ${tab === "reels" ? "[&>li]:aspect-[9/16]" : "[&>li]:aspect-square"}`}>
             {shown.map((x) => (
-              <li key={x.id} className="relative overflow-hidden bg-surface"><button onClick={() => setView({ media: x.media, i: 0 })} className="size-full">
+              <li key={x.id} className="relative overflow-hidden bg-surface"><button onClick={() => setOpen(x.id)} className="size-full">
                 {x.media[0].type === "video" ? <video src={x.media[0].src} muted className="size-full object-cover" /> : <img src={x.media[0].src} alt="" loading="lazy" className="size-full object-cover" />}
                 <MediaBadge media={x.media} /></button></li>
             ))}
@@ -113,7 +124,24 @@ export default function Profile() {
         ) : <p className="py-14 text-center text-muted">{isMe ? "Nothing yet. Go somewhere and post it." : "No posts yet."}</p>}
       </>}
       {newH && <NewHighlight mine={media.filter((m) => m.type === "image").map((m) => m.src)} onClose={() => setNewH(false)} />}
+      {crop && <ImageCropper file={crop.file} aspect={crop.kind === "cover" ? 3 : 1} round={crop.kind === "avatar"} title={crop.kind === "cover" ? "Position your banner" : "Profile photo"}
+        onClose={() => setCrop(null)} onDone={async (f) => { const k = crop.kind; setCrop(null); try { actions.setProfileImage(k, (await fileToMedia(f)).src); } catch (e) { alert((e as Error).message); } }} />}
+      {open && <PostViewer postId={open} onClose={() => setOpen(null)} />}
       {view && <Lightbox media={view.media} start={view.i} onClose={() => setView(null)} />}
     </div>
+  );
+}
+
+// Opening a grid post shows it exactly like the feed: likes, comments, share, save.
+function PostViewer({ postId, onClose }: { postId: string; onClose: () => void }) {
+  const post = useStore((s) => s.posts.find((p) => p.id === postId));
+  useScrollLock();
+  if (!post) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[75] overflow-y-auto bg-bg" role="dialog" aria-modal="true" aria-label="Post">
+      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-line bg-bg/90 px-3 py-2.5 backdrop-blur"><button onClick={onClose} aria-label="Back" className="grid size-10 place-items-center rounded-full hover:bg-surface"><ArrowLeft className="size-5" /></button><p className="font-bold">Post</p></div>
+      <div className="mx-auto max-w-xl px-4 pb-16 sm:px-0"><PostCard post={post} priority /></div>
+    </div>,
+    document.body,
   );
 }

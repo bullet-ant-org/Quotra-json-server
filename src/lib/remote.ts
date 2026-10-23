@@ -16,7 +16,7 @@ const day = (d: string | Date) => new Date(d).toISOString().slice(0, 10);
 function addPeople(s: State, list: A[]) {
   for (const u of list) {
     if (!u?.id) continue;
-    const p: Person = { id: u.id, name: `${u.firstName} ${u.lastName ?? ""}`.trim(), username: u.username, avatar: u.avatar ?? `https://api.dicebear.com/9.x/initials/svg?seed=${u.username}`, bio: u.bio, following: s.people.find((x) => x.id === u.id)?.following ?? false, status: u.status };
+    const p: Person = { id: u.id, name: `${u.firstName} ${u.lastName ?? ""}`.trim(), username: u.username, avatar: u.avatar ?? `https://api.dicebear.com/9.x/initials/svg?seed=${u.username}`, cover: u.cover, bio: u.bio, following: s.people.find((x) => x.id === u.id)?.following ?? false, status: u.status };
     const i = s.people.findIndex((x) => x.id === u.id);
     if (i >= 0) s.people[i] = { ...s.people[i], ...p }; else s.people.push(p);
   }
@@ -166,6 +166,7 @@ if (LIVE) {
     view: (id: string, ms = 0) => { post(`/posts/${id}/view`, { ms }).catch(() => {}); },
     adClick: (id: string) => { post(`/ads/${id}/click`, {}).catch(() => {}); },
     adSeen: (id: string) => { post(`/ads/${id}/impression`, {}).catch(() => {}); },
+    setProfileImage: (kind: "avatar" | "cover", src: string) => { set((s) => { const p = s.people.find((x) => x.id === s.me); if (p) p[kind] = src; }); request("PATCH", "/me", { [kind]: src }).catch((e) => alert(err(e))); },
     setPlatform: (p: A) => run(() => request("PUT", "/admin/settings", p)),
     shared: (id: string) => { post(`/posts/${id}/share`, {}).catch(() => {}); },
     comment: (id: string, text: string) => run(() => post(`/posts/${id}/comments`, { text })),

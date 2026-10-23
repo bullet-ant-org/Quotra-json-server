@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { PH, photo } from "./media";
 
 export type Role = "user" | "brand" | "admin";
-export interface Person { id: string; name: string; username: string; avatar: string; bio?: string; following: boolean; status?: "active" | "suspended" }
+export interface Person { id: string; name: string; username: string; avatar: string; cover?: string; bio?: string; following: boolean; status?: "active" | "suspended" }
 export interface Media { type: "image" | "video"; src: string }
 export interface Comment { id: string; authorId: string; text: string; at: number; likes?: string[] }
 export interface Party { date: string; max: number; going: string[] }
@@ -173,6 +173,8 @@ export const actions = {
   adClick: (id: string) => set((s) => { const a = s.ads.find((x) => x.id === id); if (a) a.clicks = (a.clicks ?? 0) + 1; }),
   adSeen: (id: string) => set((s) => { const a = s.ads.find((x) => x.id === id); if (a) a.reach += 1; }),
   resolveReport: (id: string, _action: "dismiss" | "remove") => set((s) => { s.reports = (s.reports ?? []).filter((r) => r.id !== id); }),
+  updateProfile: (name: string, bio: string) => set((s) => { const p = s.people.find((x) => x.id === s.me); if (p) { p.name = name; p.bio = bio; } }),
+  setProfileImage: (kind: "avatar" | "cover", src: string) => set((s) => { const p = s.people.find((x) => x.id === s.me); if (p) p[kind] = src; }),
   setPlatform: (p: Platform) => set((s) => { s.platform = p; s.adSettings = { pricePerCredit: p.pricePerCredit, minCredits: p.minCredits, creditsPer1kViews: p.creditsPer1k.feed }; }),
   view: (id: string, _ms = 0) => set((s) => { const p = s.posts.find((x) => x.id === id); if (p) p.views = (p.views ?? 0) + 1; }),
   shared: (id: string) => set((s) => { const p = s.posts.find((x) => x.id === id); if (p) p.shares = (p.shares ?? 0) + 1; }),

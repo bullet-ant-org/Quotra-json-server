@@ -116,7 +116,7 @@ p { text-wrap: pretty; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .pb-dock { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
 
-html, body { overflow-x: clip; }
+html, body { overflow-x: clip; overscroll-behavior-y: none; } /* no rubber-band pull: feels like a native app */
 
 input:not([type="checkbox"]):not([type="radio"]):focus-visible, select:focus-visible { outline: none; }
 
